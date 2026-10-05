@@ -30,7 +30,7 @@ spec:
     - host: {{ .Values.ingress.host | quote }}
       http:
         paths:
-          {{- range (list "/api" "/admin/api" "/hooks") }}
+          {{- range (list "/api" "/admin/api" "/hooks" "/mcp/nabu") }}
           - path: {{ . }}
             pathType: Prefix
             backend:

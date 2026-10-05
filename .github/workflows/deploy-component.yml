@@ -113,6 +113,15 @@ jobs:
           HAS_HAMMURAPI_TOKEN_ENCRYPTION_KEY: ${{ secrets.HAMMURAPI_TOKEN_ENCRYPTION_KEY != '' }}
           HAS_HAMMURAPI_GHCR_PULL_TOKEN: ${{ secrets.HAMMURAPI_GHCR_PULL_TOKEN != '' }}
           HAS_HAMMURAPI_DEPLOY_CALLBACK_SECRET: ${{ secrets.HAMMURAPI_DEPLOY_CALLBACK_SECRET != '' }}
+          HAMMURAPI_AUTH_PROVIDER: ${{ vars.HAMMURAPI_AUTH_PROVIDER || 'github' }}
+          HAMMURAPI_AUTH_GITHUB_CLIENT_ID: ${{ vars.HAMMURAPI_AUTH_GITHUB_CLIENT_ID }}
+          HAMMURAPI_AUTH_OIDC_ISSUER: ${{ vars.HAMMURAPI_AUTH_OIDC_ISSUER }}
+          HAMMURAPI_AUTH_OIDC_CLIENT_ID: ${{ vars.HAMMURAPI_AUTH_OIDC_CLIENT_ID }}
+          HAS_HAMMURAPI_AUTH_GITHUB_CLIENT_SECRET: ${{ secrets.HAMMURAPI_AUTH_GITHUB_CLIENT_SECRET != '' }}
+          HAS_HAMMURAPI_AUTH_OIDC_CLIENT_SECRET: ${{ secrets.HAMMURAPI_AUTH_OIDC_CLIENT_SECRET != '' }}
+          HAMMURAPI_NABU_URL: ${{ vars.HAMMURAPI_NABU_URL }}
+          HAMMURAPI_NABU_CLIENT_ID: ${{ vars.HAMMURAPI_NABU_CLIENT_ID }}
+          HAS_HAMMURAPI_NABU_CLIENT_SECRET: ${{ secrets.HAMMURAPI_NABU_CLIENT_SECRET != '' }}
         run: |
           missing=()
           need_var() { local k; for k in "$@"; do [[ -n ${!k:-} ]] || missing+=("$k (переменная)"); done; }
@@ -127,6 +136,16 @@ jobs:
             need_var HAMMURAPI_GITHUB_APP_ID HAMMURAPI_GITHUB_CLIENT_ID HAMMURAPI_SPEC_REPO HAMMURAPI_BOOTSTRAP_ADMINS
             need_secret HAMMURAPI_GITHUB_APP_PRIVATE_KEY HAMMURAPI_GITHUB_CLIENT_SECRET HAMMURAPI_WEBHOOK_SECRET \
               HAMMURAPI_TOKEN_ENCRYPTION_KEY
+            case ${HAMMURAPI_AUTH_PROVIDER:-github} in
+              github) ;;
+              oidc) need_var HAMMURAPI_AUTH_OIDC_ISSUER HAMMURAPI_AUTH_OIDC_CLIENT_ID; need_secret HAMMURAPI_AUTH_OIDC_CLIENT_SECRET ;;
+              *) missing+=("HAMMURAPI_AUTH_PROVIDER (github | oidc)") ;;
+            esac
+            [[ -n ${HAMMURAPI_AUTH_GITHUB_CLIENT_ID:-} ]] && need_secret HAMMURAPI_AUTH_GITHUB_CLIENT_SECRET
+            if [[ -n ${HAMMURAPI_NABU_URL:-} ]]; then
+              need_var HAMMURAPI_NABU_CLIENT_ID
+              need_secret HAMMURAPI_NABU_CLIENT_SECRET
+            fi
           fi
           [[ -n $CALLBACK_URL ]] && need_secret HAMMURAPI_DEPLOY_CALLBACK_SECRET
           if ((${#missing[@]})); then
@@ -200,6 +219,22 @@ jobs:
           # к LLM настраиваются в «Администрирование → Агент» (FTR.HMR.CMN-0004).
           HAMMURAPI_BOOTSTRAP_DEEPSEEK_API_KEY: ${{ secrets.HAMMURAPI_BOOTSTRAP_DEEPSEEK_API_KEY }}
           HAMMURAPI_GHCR_PULL_TOKEN: ${{ secrets.HAMMURAPI_GHCR_PULL_TOKEN }}
+          # Вход (FTR.HMR.CMN-0006 R1): github (по умолчанию) — GitHub с email и, если
+          # задана, проверкой организации; oidc — корпоративный провайдер.
+          HAMMURAPI_AUTH_PROVIDER: ${{ vars.HAMMURAPI_AUTH_PROVIDER || 'github' }}
+          HAMMURAPI_AUTH_GITHUB_ORG: ${{ vars.HAMMURAPI_AUTH_GITHUB_ORG }}
+          HAMMURAPI_AUTH_GITHUB_CLIENT_ID: ${{ vars.HAMMURAPI_AUTH_GITHUB_CLIENT_ID }}
+          HAMMURAPI_AUTH_GITHUB_CLIENT_SECRET: ${{ secrets.HAMMURAPI_AUTH_GITHUB_CLIENT_SECRET }}
+          HAMMURAPI_AUTH_OIDC_ISSUER: ${{ vars.HAMMURAPI_AUTH_OIDC_ISSUER }}
+          HAMMURAPI_AUTH_OIDC_CLIENT_ID: ${{ vars.HAMMURAPI_AUTH_OIDC_CLIENT_ID }}
+          HAMMURAPI_AUTH_OIDC_NAME: ${{ vars.HAMMURAPI_AUTH_OIDC_NAME }}
+          HAMMURAPI_AUTH_OIDC_CLIENT_SECRET: ${{ secrets.HAMMURAPI_AUTH_OIDC_CLIENT_SECRET }}
+          # Подключение к Nabu (R4): пусто — встроенный агент или режим без агента.
+          HAMMURAPI_NABU_URL: ${{ vars.HAMMURAPI_NABU_URL }}
+          HAMMURAPI_NABU_CLIENT_ID: ${{ vars.HAMMURAPI_NABU_CLIENT_ID }}
+          HAMMURAPI_NABU_CLIENT_SECRET: ${{ secrets.HAMMURAPI_NABU_CLIENT_SECRET }}
+          # false — после переноса настроек в Nabu чарт без оператора агента (R10).
+          HAMMURAPI_AGENT_OPERATOR: ${{ vars.HAMMURAPI_AGENT_OPERATOR || 'true' }}
         run: |
           source "$RUNNER_TEMP/hmr.sh"
           # Конфигурация и секреты — одним JSON в stdin SSH; jq берёт значения из
@@ -207,14 +242,21 @@ jobs:
           if [[ $COMPONENT == hammurapi-core ]]; then
             payload=$(jq -cn '{
               image: $ENV.IMAGE,
-              config: {GIT_PROVIDER: "github", GIT_REPO: $ENV.HAMMURAPI_SPEC_REPO,
+              config: ({GIT_PROVIDER: "github", GIT_REPO: $ENV.HAMMURAPI_SPEC_REPO,
                 GITHUB_APP_ID: $ENV.HAMMURAPI_GITHUB_APP_ID, GITHUB_CLIENT_ID: $ENV.HAMMURAPI_GITHUB_CLIENT_ID,
-                BOOTSTRAP_ADMINS: $ENV.HAMMURAPI_BOOTSTRAP_ADMINS},
+                BOOTSTRAP_ADMINS: $ENV.HAMMURAPI_BOOTSTRAP_ADMINS}
+                + ({AUTH_PROVIDER: $ENV.HAMMURAPI_AUTH_PROVIDER, GITHUB_ALLOWED_ORG: $ENV.HAMMURAPI_AUTH_GITHUB_ORG, GITHUB_LOGIN_CLIENT_ID: $ENV.HAMMURAPI_AUTH_GITHUB_CLIENT_ID,
+                    OIDC_ISSUER: $ENV.HAMMURAPI_AUTH_OIDC_ISSUER, OIDC_CLIENT_ID: $ENV.HAMMURAPI_AUTH_OIDC_CLIENT_ID,
+                    OIDC_PROVIDER_NAME: $ENV.HAMMURAPI_AUTH_OIDC_NAME, NABU_URL: $ENV.HAMMURAPI_NABU_URL,
+                    NABU_CLIENT_ID: $ENV.HAMMURAPI_NABU_CLIENT_ID} | with_entries(select((.value // "") != "")))),
               secrets: ({GITHUB_APP_PRIVATE_KEY: $ENV.HAMMURAPI_GITHUB_APP_PRIVATE_KEY,
                 GITHUB_CLIENT_SECRET: $ENV.HAMMURAPI_GITHUB_CLIENT_SECRET, WEBHOOK_SECRET: $ENV.HAMMURAPI_WEBHOOK_SECRET,
                 TOKEN_ENCRYPTION_KEY: $ENV.HAMMURAPI_TOKEN_ENCRYPTION_KEY}
-                + (if ($ENV.HAMMURAPI_BOOTSTRAP_DEEPSEEK_API_KEY // "") != ""
-                   then {BOOTSTRAP_DEEPSEEK_API_KEY: $ENV.HAMMURAPI_BOOTSTRAP_DEEPSEEK_API_KEY} else {} end)),
+                + ({BOOTSTRAP_DEEPSEEK_API_KEY: $ENV.HAMMURAPI_BOOTSTRAP_DEEPSEEK_API_KEY,
+                    GITHUB_LOGIN_CLIENT_SECRET: $ENV.HAMMURAPI_AUTH_GITHUB_CLIENT_SECRET,
+                    OIDC_CLIENT_SECRET: $ENV.HAMMURAPI_AUTH_OIDC_CLIENT_SECRET,
+                    NABU_CLIENT_SECRET: $ENV.HAMMURAPI_NABU_CLIENT_SECRET} | with_entries(select((.value // "") != "")))),
+              agentOperator: ($ENV.HAMMURAPI_AGENT_OPERATOR != "false"),
               ghcrPullToken: $ENV.HAMMURAPI_GHCR_PULL_TOKEN}')
           else
             payload=$(jq -cn '{image: $ENV.IMAGE, ghcrPullToken: $ENV.HAMMURAPI_GHCR_PULL_TOKEN}')
@@ -241,7 +283,9 @@ jobs:
           domain=$(jq -r .publicBaseDomain <<<"$RESULT")
           first=$(jq -r .firstInstall <<<"$RESULT")
           [[ -n $domain && $domain != null ]] || { echo "::error::нет домена в итоге выкатки"; exit 1; }
-          api="https://api.$domain" web="https://web.$domain"
+          # Адреса — из итога выкатки (hammurapi. и hammurapi-api.); стенд старой версии — web. и api.
+          api=$(jq -r '.apiUrl // empty' <<<"$RESULT") web=$(jq -r '.webUrl // empty' <<<"$RESULT")
+          api=${api:-https://api.$domain} web=${web:-https://web.$domain}
           # Поды могут стать готовыми раньше, чем Traefik подхватит маршруты.
           retry() { local _; for _ in $(seq 1 10); do "$@" && return 0; sleep 15; done; return 1; }
           check() { local name=$1; shift; if retry "$@"; then echo "✓ $name"; echo "- ✓ $name" >>"$GITHUB_STEP_SUMMARY"; else echo "::error::✗ $name"; echo "- ✗ $name" >>"$GITHUB_STEP_SUMMARY"; failed=1; fi; }
@@ -262,7 +306,7 @@ jobs:
             check "GET $api/api/v1/config — 200, provider github" config_ok
             check "подписанный ping на $api/hooks/v1/git — 202" ping_ok
             check "$api/metrics закрыт" metrics_closed
-            check "http://api.$domain → HTTPS" redirect "api.$domain"
+            check "http://${api#https://} → HTTPS" redirect "${api#https://}"
             if [[ $first == true ]]; then
               admins_ok() { curl -fsS --max-time 15 "$api/api/v1/config" | jq -e '.bootstrapAdminsConfigured == true' >/dev/null; }
               check "первая установка: первый глобальный администратор задан" admins_ok
@@ -280,7 +324,7 @@ jobs:
             check "GET $web/ — 200 text/html" page_ok
             check "$web/config.json: apiBaseUrl = $api" cfg_ok
             check "CORS $api с Origin $web" cors_ok
-            check "http://web.$domain → HTTPS" redirect "web.$domain"
+            check "http://${web#https://} → HTTPS" redirect "${web#https://}"
           fi
           exit "$failed"
 

@@ -35,5 +35,14 @@ jobs:
               web = json.loads(subprocess.run(["jq", "-cn", exprs[1]], env=env, check=True, capture_output=True, text=True).stdout)
               assert ("BOOTSTRAP_DEEPSEEK_API_KEY" in core["secrets"]) == bool(key), core["secrets"].keys()
               assert core["image"] == "img" and core["config"]["GIT_REPO"] == "o/r" and web == {"image": "img", "ghcrPullToken": "g"}
+              # FTR.HMR.CMN-0006: empty sign-in and Nabu settings do not reach the stand.
+              assert "NABU_URL" not in core["config"] and "NABU_CLIENT_SECRET" not in core["secrets"], core
+              assert core["agentOperator"] is True
+          env.update(HAMMURAPI_AUTH_PROVIDER="github", HAMMURAPI_AUTH_GITHUB_ORG="GreenOnGrey", HAMMURAPI_NABU_URL="https://nabu-api.x",
+                     HAMMURAPI_NABU_CLIENT_ID="hmr", HAMMURAPI_NABU_CLIENT_SECRET="ns", HAMMURAPI_AGENT_OPERATOR="false")
+          core = json.loads(subprocess.run(["jq", "-cn", exprs[0]], env=env, check=True, capture_output=True, text=True).stdout)
+          assert core["config"]["AUTH_PROVIDER"] == "github" and core["config"]["GITHUB_ALLOWED_ORG"] == "GreenOnGrey", core["config"]
+          assert core["config"]["NABU_URL"] == "https://nabu-api.x" and core["secrets"]["NABU_CLIENT_SECRET"] == "ns"
+          assert core["agentOperator"] is False
           print("payload ok")
           EOF

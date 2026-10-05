@@ -84,8 +84,51 @@ administrator sets it in **Administration → Settings** (default every hour).
 
 | Variable | Purpose | Default |
 | --- | --- | --- |
-| `BOOTSTRAP_ADMINS` | Provider logins (comma-separated) that become global administrators on their **first** sign-in | — |
+| `BOOTSTRAP_ADMINS` | Emails (or, transitionally, git logins), comma-separated, that become global administrators on their **first** sign-in | — |
 | `DEFAULT_LANGUAGE` | Interface language before sign-in when the browser language is not supported, and for new users: `en`, `ru`, `de`, `es`, `zh-CN` | `en` |
+
+## Sign-in
+
+Sign-in goes through one provider of the deployment (FTR.HMR.CMN-0006). Edits of specifications
+still commit on behalf of the user, so a user who signs in through OIDC links a git account in the
+profile menu; the interface offers it when a change needs it.
+
+| Variable | Purpose | Default |
+| --- | --- | --- |
+| `AUTH_PROVIDER` | Empty — the OAuth of the git provider, as before; `github` — GitHub with the email and an optional organization; `oidc` — a corporate provider (Keycloak, ADFS…) | — |
+| `GITHUB_ALLOWED_ORG` | `github`: only members of this organization may sign in | — |
+| `GITHUB_LOGIN_CLIENT_ID`, `GITHUB_LOGIN_CLIENT_SECRET` | `github`: a separate OAuth App for sign-in (callback `<PUBLIC_API_URL>/api/v1/auth/callback`, scopes `read:user user:email read:org`); required when the git provider is GitLab. Empty — sign-in through the app of the GitHub git provider | — |
+| `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET` | `oidc`: the issuer and the client (PKCE, verified email required) | — |
+| `OIDC_SCOPES`, `OIDC_PROVIDER_NAME` | `oidc`: scopes and the name on the sign-in button | `openid email profile`, `Keycloak` |
+
+With `github` and no separate app, sign-in uses the GitHub App of the git provider and links the git
+account at once; give the App the permissions **Email addresses: read** (account) and **Members:
+read** (organization) so that emails and the organization can be checked. With a separate sign-in
+app or OIDC the user links the git account in the profile menu (and may unlink it).
+
+A user who signs in through a new provider is matched with the earlier account by a verified email
+(collected from the git provider in the background after the upgrade). Probable matches without an
+email wait for a global administrator in **Admin → Users**.
+
+## Nabu
+
+With Nabu connected, the chat is the user's personal agent in Nabu, and the scenarios of the cycle
+run on service agents of Nabu bound in **Admin → Nabu**. Register Hammurapi in Nabu (**Nabu → Admin →
+Clients**, rights `delegate` and `import`, service agents allowed), then set:
+
+| Variable | Purpose | Default |
+| --- | --- | --- |
+| `NABU_URL` | Address of the Nabu API, e.g. `https://nabu-api.example.com`; empty — no Nabu | — |
+| `NABU_CLIENT_ID`, `NABU_CLIENT_SECRET` | The service client of Hammurapi in Nabu | — (required with `NABU_URL`) |
+| `NABU_JWKS_CACHE` | How long the signing keys of Nabu are cached | `10m` |
+| `NABU_WORKER_MCP_URL`, `NABU_TASK_MCP_URL` | The MCP of the worker and of `api` (runner tasks) as Nabu reaches them | `WORKER_MCP_URL/mcp`, `INTERNAL_URL/mcp` |
+
+The personal agents of Nabu call `POST <PUBLIC_API_URL>/mcp/nabu` with a JWT of Nabu (audience
+`hammurapi`) and `Nabu-On-Behalf-Of: <email>`; Hammurapi applies the rights of that user.
+
+Without `NABU_URL` and without `AGENT_SERVICE_TOKEN` Hammurapi works **without the agent**: issues go
+straight to verification and experts fill in the value and the measure, people write `tech` and `qa`,
+code generation is unavailable. Specifications, approvals, validation and releases work as usual.
 
 ## Agent
 
@@ -94,7 +137,7 @@ administrators set them in **Admin → Agent**. See [agent.md](agent.md).
 
 | Variable | Purpose | Default |
 | --- | --- | --- |
-| `AGENT_SERVICE_TOKEN` | Shared token of `api`, `worker` and the agent operator | — (required for `api`, `worker`, `agent`) |
+| `AGENT_SERVICE_TOKEN` | Shared token of `api`, `worker` and the built-in agent operator; empty — no built-in agent | — (required for `agent`) |
 | `AGENT_ADDR` | Address of the agent operator for `api` and `worker` | `http://agent:8090` |
 | `AGENT_RUNNER_URL` | Address of the agent operator as seen from runner tasks | `AGENT_ADDR` |
 | `AGENT_IDLE_TIMEOUT` | Idle chat and task sessions are saved and closed after this Go duration | `15m` |
