@@ -194,4 +194,4 @@ sets it in **Administration → Settings** (default 90 days).
 
 | Variable | Purpose | Default |
 | --- | --- | --- |
-| `PI_VERSION` | Pi version installed in the locally built operator image (`hammurapi-core/deploy/versions.env` in releases) | `1.0.0` |
+| `PI_VERSION` | Pi version installed in the locally built operator image (`hammurapi-core/deploy/versions.env` in releases) | `1.1.0` |

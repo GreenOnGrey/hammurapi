@@ -145,7 +145,7 @@ services:
     build:
       context: ../hammurapi-core
       target: release
-      args: { PI_VERSION: "${PI_VERSION:-1.0.0}" }
+      args: { PI_VERSION: "${PI_VERSION:-1.1.0}" }
     image: hammurapi-core:local
     command: ["agent"]
     environment:

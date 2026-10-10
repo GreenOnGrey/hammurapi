@@ -10,7 +10,7 @@
 | `hammurapi-web` | `hammurapi-web/Dockerfile` | SPA on unprivileged nginx (port 8080) proxying `/api`, `/admin/api`, `/hooks` to `API_UPSTREAM` |
 
 ```sh
-docker build --target release --build-arg VERSION=1.2.0 --build-arg PI_VERSION=1.0.0 \
+docker build --target release --build-arg VERSION=1.2.0 --build-arg PI_VERSION=1.1.0 \
   -t registry.example.com/hammurapi-core:1.2.0 ../hammurapi-core
 docker build -t registry.example.com/hammurapi-web:1.2.0 ../hammurapi-web
 ```
