@@ -68,6 +68,11 @@ or one section; long documents come with the table of contents and the sections 
 `spec_requirements` (R1… with acceptance criteria) and `spec_references` (where a feature or a
 requirement is mentioned).
 
+The reading tools of the table below (`list_issues`, `read_issue`, `list_features`, `search_specs`,
+`read_spec`, `read_rules`, `list_services`, `read_service_file`, `test_metric_query`) and `spec_*` carry the MCP annotation
+`readOnlyHint`. A client that offers only read-only tools — a catalog item of Nabu with **Read only**
+on — shows them and hides the tools that change data, `create_issue` among them.
+
 | Tool | Chat | Discovery | Gate generation | Check | Runner task |
 | --- | --- | --- | --- | --- | --- |
 | `list_issues`, `read_issue`, `list_features`, `search_specs` | yes | yes | yes | yes | no |
