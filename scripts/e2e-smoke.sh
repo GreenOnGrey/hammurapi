@@ -208,6 +208,13 @@ push_spec "specs/FMS/CAR/FTR.FMS.CAR-0042/product/spec.md" $'# Indexed from git\
 indexed() { [[ $(field anna GET /api/v1/features/FTR.FMS.CAR-0042 'd["phase"]') == indexed ]]; }
 wait_for "a specification pushed past Hammurapi is indexed as implemented (R2, R4)" indexed
 call anna GET "/api/v1/spec/search?q=surcharge" | json 'd["items"][0]["featureKey"]' | grep -q FTR.FMS.CAR-0042 && ok "full-text search finds it (R14)" || die "search"
+# FTR.HMR.SPEC-0001 R6, R7: a mockup opens as a page of its own, sandboxed into an opaque origin
+push_spec "specs/FMS/CAR/FTR.FMS.CAR-0042/design/mockups.html" $'<html><script>fetch("/api/v1/auth/me")</script></html>\n'
+view_url() { call anna GET /api/v1/spec/files/FTR.FMS.CAR-0042/design | json '[f.get("viewUrl", "") for f in d["files"] if f["name"] == "mockups.html"][0]'; }
+has_view() { view_url | grep -q "mode=view"; }
+wait_for "the mockup is listed with a view link (API-04)" has_view
+csp=$(curl -s -b "$TMP/anna" -D - -o /dev/null "$WEB$(view_url)" | tr -d '\r' | awk -F': ' 'tolower($1)=="content-security-policy"{print $2}')
+[[ $csp == "sandbox allow-scripts" ]] && ok "the mockup is served with CSP sandbox (API-05)" || die "view CSP: $csp"
 push_spec "specs/FMS/CAR/FMS.CAR-0099/product/spec.md" $'# Old format\n'
 push_spec "specs/LOG/DLV/FTR.LOG.DLV-0003/product/spec.md" $'# Deliveries\n'
 spec_focus() { call admin GET /api/v1/focus | json '[i["action"] for i in d.get("spec", [])]' | grep -q "$1"; }
