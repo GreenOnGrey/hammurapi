@@ -120,6 +120,7 @@ Clients**, rights `delegate` and `import`, service agents allowed), then set:
 | --- | --- | --- |
 | `NABU_URL` | Address of the Nabu API, e.g. `https://nabu-api.example.com`; empty — no Nabu | — |
 | `NABU_CLIENT_ID`, `NABU_CLIENT_SECRET` | The service client of Hammurapi in Nabu | — (required with `NABU_URL`) |
+| `NABU_CLIENT_NAME` | The name of that service client in Nabu: Nabu names the channel of messages written in Hammurapi `client:<name>`, and only this channel may give instructions to the researcher of Discovery (FTR.HMR.DISC-0001 R6) | `hammurapi` |
 | `NABU_JWKS_CACHE` | How long the signing keys of Nabu are cached | `10m` |
 | `NABU_WORKER_MCP_URL`, `NABU_TASK_MCP_URL` | The MCP of the worker and of `api` (runner tasks) as Nabu reaches them | `WORKER_MCP_URL/mcp`, `INTERNAL_URL/mcp` |
 
