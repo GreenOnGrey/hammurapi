@@ -57,6 +57,7 @@ See [git-providers.md](git-providers.md) and [cycle.md](cycle.md).
 | `RUNNER_MAX_PARALLEL_PER_REPO` | Tasks running at once per repository | `1` |
 | `WORKFLOW_MAX_ATTEMPTS` | Attempts of an effect (deploy, merge, agent call…) before the run is blocked | `8` |
 | `WORKFLOW_LEASE` | How long a worker holds a run before another may take it | `2m` |
+| `WORKFLOW_DISPATCHERS` | How many effects a worker runs at once; an effect that runs an agent holds one for minutes, the runs are processed by a loop of their own | `4` |
 | `DISCOVERY_TIMEOUT` | Maximum duration of one Discovery session | `20m` |
 
 Deploy settings, the feature-flag webhook, the Backstage catalog, stage and metric sources are not
