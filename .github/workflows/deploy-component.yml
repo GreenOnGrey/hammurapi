@@ -142,10 +142,9 @@ jobs:
               *) missing+=("HAMMURAPI_AUTH_PROVIDER (github | oidc)") ;;
             esac
             [[ -n ${HAMMURAPI_AUTH_GITHUB_CLIENT_ID:-} ]] && need_secret HAMMURAPI_AUTH_GITHUB_CLIENT_SECRET
-            if [[ -n ${HAMMURAPI_NABU_URL:-} ]]; then
-              need_var HAMMURAPI_NABU_CLIENT_ID
-              need_secret HAMMURAPI_NABU_CLIENT_SECRET
-            fi
+            # FTR.HMR.CMN-0007 R1: без Nabu Hammurapi не запускается.
+            need_var HAMMURAPI_NABU_URL HAMMURAPI_NABU_CLIENT_ID
+            need_secret HAMMURAPI_NABU_CLIENT_SECRET
           fi
           [[ -n $CALLBACK_URL ]] && need_secret HAMMURAPI_DEPLOY_CALLBACK_SECRET
           if ((${#missing[@]})); then
@@ -229,12 +228,12 @@ jobs:
           HAMMURAPI_AUTH_OIDC_CLIENT_ID: ${{ vars.HAMMURAPI_AUTH_OIDC_CLIENT_ID }}
           HAMMURAPI_AUTH_OIDC_NAME: ${{ vars.HAMMURAPI_AUTH_OIDC_NAME }}
           HAMMURAPI_AUTH_OIDC_CLIENT_SECRET: ${{ secrets.HAMMURAPI_AUTH_OIDC_CLIENT_SECRET }}
-          # Подключение к Nabu (R4): пусто — встроенный агент или режим без агента.
+          # Подключение к Nabu (FTR.HMR.CMN-0007 R1). NABU_WEB_URL — сайт Nabu для
+          # ссылки из задачи кода (R11), необязательно.
           HAMMURAPI_NABU_URL: ${{ vars.HAMMURAPI_NABU_URL }}
           HAMMURAPI_NABU_CLIENT_ID: ${{ vars.HAMMURAPI_NABU_CLIENT_ID }}
           HAMMURAPI_NABU_CLIENT_SECRET: ${{ secrets.HAMMURAPI_NABU_CLIENT_SECRET }}
-          # false — после переноса настроек в Nabu чарт без оператора агента (R10).
-          HAMMURAPI_AGENT_OPERATOR: ${{ vars.HAMMURAPI_AGENT_OPERATOR || 'true' }}
+          NABU_WEB_URL: ${{ vars.NABU_WEB_URL }}
         run: |
           source "$RUNNER_TEMP/hmr.sh"
           # Конфигурация и секреты — одним JSON в stdin SSH; jq берёт значения из
@@ -248,7 +247,7 @@ jobs:
                 + ({AUTH_PROVIDER: $ENV.HAMMURAPI_AUTH_PROVIDER, GITHUB_ALLOWED_ORG: $ENV.HAMMURAPI_AUTH_GITHUB_ORG, GITHUB_LOGIN_CLIENT_ID: $ENV.HAMMURAPI_AUTH_GITHUB_CLIENT_ID,
                     OIDC_ISSUER: $ENV.HAMMURAPI_AUTH_OIDC_ISSUER, OIDC_CLIENT_ID: $ENV.HAMMURAPI_AUTH_OIDC_CLIENT_ID,
                     OIDC_PROVIDER_NAME: $ENV.HAMMURAPI_AUTH_OIDC_NAME, NABU_URL: $ENV.HAMMURAPI_NABU_URL,
-                    NABU_CLIENT_ID: $ENV.HAMMURAPI_NABU_CLIENT_ID} | with_entries(select((.value // "") != "")))),
+                    NABU_CLIENT_ID: $ENV.HAMMURAPI_NABU_CLIENT_ID, NABU_WEB_URL: $ENV.NABU_WEB_URL} | with_entries(select((.value // "") != "")))),
               secrets: ({GITHUB_APP_PRIVATE_KEY: $ENV.HAMMURAPI_GITHUB_APP_PRIVATE_KEY,
                 GITHUB_CLIENT_SECRET: $ENV.HAMMURAPI_GITHUB_CLIENT_SECRET, WEBHOOK_SECRET: $ENV.HAMMURAPI_WEBHOOK_SECRET,
                 TOKEN_ENCRYPTION_KEY: $ENV.HAMMURAPI_TOKEN_ENCRYPTION_KEY}
@@ -256,7 +255,6 @@ jobs:
                     GITHUB_LOGIN_CLIENT_SECRET: $ENV.HAMMURAPI_AUTH_GITHUB_CLIENT_SECRET,
                     OIDC_CLIENT_SECRET: $ENV.HAMMURAPI_AUTH_OIDC_CLIENT_SECRET,
                     NABU_CLIENT_SECRET: $ENV.HAMMURAPI_NABU_CLIENT_SECRET} | with_entries(select((.value // "") != "")))),
-              agentOperator: ($ENV.HAMMURAPI_AGENT_OPERATOR != "false"),
               ghcrPullToken: $ENV.HAMMURAPI_GHCR_PULL_TOKEN}')
           else
             payload=$(jq -cn '{image: $ENV.IMAGE, ghcrPullToken: $ENV.HAMMURAPI_GHCR_PULL_TOKEN}')
