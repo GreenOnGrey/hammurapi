@@ -1,5 +1,5 @@
-# Core image (release target of hammurapi-core: Hammurapi + Pi + the hammurapi-workspace
-# extension). Used by every mode; the agent operator needs this image.
+# Core image (release target of hammurapi-core: one static binary). Used by every mode.
+# The agent lives in Nabu (FTR.HMR.CMN-0007): there is no agent image here.
 image:
   {
     repository: registry.example.com/hammurapi-core,
@@ -27,37 +27,22 @@ api:
   extraEnv: []
 worker:
   replicas: 1
-  # Agent scenarios (Analysis, gate generation, checks) and the MCP of task sessions (:8083).
+  # Runs of the service agents of Nabu, code tasks in the sandbox of Nabu and the MCP of runs (:8083).
   resources: { requests: { cpu: 200m, memory: 512Mi } }
-# The agent operator (FTR.HMR.CMN-0004): a Pi process per chat or task session. One replica:
-# sessions live in the process; chats restore from S3 snapshots after a restart.
-agent:
-  resources: { requests: { cpu: 200m, memory: 512Mi }, limits: { memory: 3Gi } }
-  maxSessions: 20
-  maxTaskSessions: 4
-  workSizeLimit: 2Gi
-runner:
-  # k8s: one Job per code task in `namespace`; local: subprocesses of the worker (demo only).
-  executor: k8s
-  namespace: hammurapi-runners
-  createNamespace: true
-  # Runner image; defaults to `image`.
-  image: {}
-  # Workspace server of a task: Pi's file and shell tools, reachable from the agent operator only.
-  workspacePort: 8095
-  networkPolicy:
-    enabled: true
-    # Extra egress of runner pods: the git provider API. Add the CIDR of a
-    # self-hosted GitLab here if it lives in a private network.
-    egress:
-      - to:
-          - ipBlock:
-              {
-                cidr: 0.0.0.0/0,
-                except: [10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16],
-              }
-        ports:
-          - { port: 443, protocol: TCP }
+
+# Nabu — the agent of Hammurapi (FTR.HMR.CMN-0006, FTR.HMR.CMN-0007). Required:
+# Hammurapi does not start without it. The client secret goes to the Secret as
+# NABU_CLIENT_SECRET.
+nabu:
+  # API of Nabu, e.g. https://nabu-api.example.com
+  url: ""
+  # Service client of Hammurapi in Nabu (Administration of Nabu → Clients).
+  clientId: ""
+  # The site of Nabu: links from code tasks to its runs (optional).
+  webUrl: ""
+  # How the service agents of Nabu reach the MCP of the worker; defaults to the
+  # worker service inside the cluster (Nabu in the same cluster).
+  workerMcpUrl: ""
 cleaner:
   schedule: "0 3 * * *"
   resources: { requests: { cpu: 50m, memory: 64Mi } }
@@ -101,17 +86,12 @@ config:
   HAMMURAPI_BOT_LOGIN: hammurapi-bot
   # Base URL of /hooks/v1/* given to CI and deploy systems; defaults to PUBLIC_URL.
   HOOKS_URL: ""
-  RUNNER_TIMEOUT: 2h
-  RUNNER_TOKEN_LIMIT: "3000000"
-  RUNNER_MAX_PARALLEL: "10"
-  RUNNER_MAX_PARALLEL_PER_REPO: "1"
-  RUNNER_CPU: "2"
-  RUNNER_MEMORY: 4Gi
+  # Code tasks in the sandbox of Nabu.
+  CODE_TIMEOUT: 2h
+  CODE_MAX_PARALLEL: "10"
   WORKFLOW_MAX_ATTEMPTS: "8"
   WORKFLOW_LEASE: 2m
   DISCOVERY_TIMEOUT: 20m
-  # Idle chat and task sessions of the agent are saved and closed after this time.
-  AGENT_IDLE_TIMEOUT: 15m
   KAFKA_BROKERS: kafka:9092
   S3_ENDPOINT: minio:9000
   S3_BUCKET: hammurapi
@@ -134,8 +114,7 @@ secrets: {}
   # WEBHOOK_SECRET: …
   # GITLAB_CLIENT_ID / GITLAB_CLIENT_SECRET or GITHUB_APP_ID / GITHUB_APP_PRIVATE_KEY / GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET
   # S3_ACCESS_KEY / S3_SECRET_KEY
-  # AGENT_SERVICE_TOKEN: <openssl rand -hex 32>   (required: api, worker and the agent operator)
-  # BOOTSTRAP_DEEPSEEK_API_KEY: …  (optional: the first LLM connection; later Administration → Agent)
+  # NABU_CLIENT_SECRET: …         (required: the secret of the service client of Hammurapi in Nabu)
   # GITLAB_BOT_TOKEN: …            (GitLab: token of the bot account; GitHub uses the App)
   # CI_RESULTS_SECRET: …           (HMAC of /hooks/v1/ci-results; two comma-separated values while rotating)
 

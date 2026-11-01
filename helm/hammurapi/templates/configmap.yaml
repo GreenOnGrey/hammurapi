@@ -7,15 +7,12 @@ data:
   {{- range $k, $v := .Values.config }}
   {{ $k }}: {{ $v | quote }}
   {{- end }}
-  # Derived from the chart: internal API (runners, MCP) and the runner executor.
-  INTERNAL_ADDR: ":8081"
-  INTERNAL_URL: {{ printf "http://%s-api.%s.svc:8081" (include "hammurapi.fullname" .) .Release.Namespace | quote }}
-  RUNNER_EXECUTOR: {{ .Values.runner.executor | quote }}
-  RUNNER_NAMESPACE: {{ .Values.runner.namespace | quote }}
-  RUNNER_IMAGE: {{ include "hammurapi.runnerImage" . | quote }}
-  RUNNER_WORKSPACE_PORT: {{ .Values.runner.workspacePort | quote }}
-  # The agent operator and the worker's MCP of task sessions.
-  AGENT_ADDR: {{ printf "http://%s-agent.%s.svc:8090" (include "hammurapi.fullname" .) .Release.Namespace | quote }}
-  AGENT_RUNNER_URL: {{ printf "http://%s-agent.%s.svc:8090" (include "hammurapi.fullname" .) .Release.Namespace | quote }}
+  # Nabu is required (FTR.HMR.CMN-0007 R1): the agent of Hammurapi.
+  NABU_URL: {{ required "nabu.url is required: Hammurapi works only with Nabu" .Values.nabu.url | quote }}
+  NABU_CLIENT_ID: {{ required "nabu.clientId is required: the service client of Hammurapi in Nabu" .Values.nabu.clientId | quote }}
+  {{- with .Values.nabu.webUrl }}
+  NABU_WEB_URL: {{ . | quote }}
+  {{- end }}
+  # The MCP of runs of the worker: the service agents of Nabu call it.
   WORKER_MCP_ADDR: ":8083"
-  WORKER_MCP_URL: {{ printf "http://%s-worker.%s.svc:8083" (include "hammurapi.fullname" .) .Release.Namespace | quote }}
+  NABU_WORKER_MCP_URL: {{ .Values.nabu.workerMcpUrl | default (printf "http://%s-worker.%s.svc:8083/mcp" (include "hammurapi.fullname" .) .Release.Namespace) | quote }}

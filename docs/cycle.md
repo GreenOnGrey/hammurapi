@@ -5,7 +5,7 @@ Hammurapi runs a feature from an issue to a confirmed release (FTR.HMR.CMN-0002)
 ```text
 Discovery     issue (idea | problem) → Analysis by the agent → accepted
 Development   feature → human gates (product, design, arch) → generated gates (tech, qa)
-              → codegen: one runner task per service → PRs → CI results → validation → signatures
+              → codegen: one task per service in the sandbox of Nabu → PRs → CI results → validation → signatures
 Delivery      release: merge → deploy → flag → value metric → confirm   (or rollback)
 ```
 
@@ -47,29 +47,24 @@ release.
 Register the same `/hooks/v1/git` webhook (secret `WEBHOOK_SECRET`) in **every service
 repository**: Hammurapi follows PR state, reviews, review comments and tags there.
 
-## 3. Runner (code tasks)
+## 3. Code tasks
 
-Each service of a feature is a **task**: a `hammurapi runner` process that checks out the
-repository through the provider API, opens an agent session in the operator and serves the
-checkout to Pi's file and shell tools (the workspace server, only for the operator), commits as the
-bot and opens or updates the PR.
+Each service of a feature is a **task**, run by the worker with a service agent of Nabu bound to
+the scenario (code generation, review update, rollback revert):
 
-| `RUNNER_EXECUTOR` | Where tasks run | Use |
-| --- | --- | --- |
-| `k8s` (default) | One Kubernetes Job per task in `RUNNER_NAMESPACE`: no service account token, read-only root filesystem, `activeDeadlineSeconds = RUNNER_TIMEOUT` | Production |
-| `local` | Subprocesses of the worker in `RUNNER_WORKDIR` | Docker Compose demo only — tasks share the worker's host |
+1. The worker downloads the branch of the task through the provider API (at most 5000 files,
+   200 MB) and uploads the working copy to Nabu.
+2. Nabu starts a temporary sandbox with the copy (profile `code`: Go, Python, JavaScript); the
+   agent changes the files and installs dependencies through the proxy of package registries. It
+   has no git credentials and cannot push.
+3. The worker polls the run, takes the changed files (dependencies, caches and files of
+   `.gitignore` are left out), commits them as the bot with trailers and opens or updates the PR.
 
-A task authenticates to the **internal API** (`INTERNAL_ADDR`, port 8081 — never exposed through
-the ingress) with a one-time task token: it reads its description, gets a short-lived git token
-for its repository only, reports progress and the result, and calls MCP tools limited to its
-feature. Limits: `RUNNER_TIMEOUT`, `RUNNER_TOKEN_LIMIT` (agent tokens per task),
-`RUNNER_MAX_PARALLEL`, `RUNNER_MAX_PARALLEL_PER_REPO`.
-
-Runner pods need no LLM credentials: the agent runs in the operator, and the task's session gets
-the model and key of the code generation scenario from Hammurapi. The chart's NetworkPolicy lets
-runner pods accept connections only from the operator (the workspace port) and reach only DNS, the
-internal API, the operator and HTTPS outside private ranges (git provider). A self-hosted GitLab in a private network must be added to
-`runner.networkPolicy.egress`.
+A revert and an update of a PR that merges cleanly need no agent. The task calls MCP tools limited
+to its feature with a task token. Limits: `CODE_TIMEOUT`, `CODE_MAX_PARALLEL`, one task per
+repository; the time and token limits of the agent are set in Nabu. A failed task shows its
+class: the sandbox did not start, the working copy is too large, the agent's limit, no changes,
+a git error, the scenario is not bound.
 
 ## 4. CI results
 

@@ -15,21 +15,21 @@ work from. Hammurapi gives people a WYSIWYG editor, an approval workflow and a c
 the agent researches issues, writes the technical and QA specifications, implements them in the
 service repositories as pull requests, and a release goes out only after people sign it off.
 
-This repository holds the **documentation, installer, Docker Compose setup, Helm chart and default
-rules**. The code lives in two sibling repositories:
+This repository holds the **documentation, Helm chart and default rules**. The code lives in two
+sibling repositories; the agent is [Nabu](../nabu-core), the corporate agent platform, which
+Hammurapi requires:
 
 | Repository | What it is |
 | --- | --- |
-| [`hammurapi-core`](../hammurapi-core) | Backend: one Go binary with the modes `api`, `worker`, `agent`, `runner`, `cleaner`, `migrate`; the release image carries the Pi agent |
+| [`hammurapi-core`](../hammurapi-core) | Backend: one Go binary with the modes `api`, `worker`, `cleaner`, `migrate` |
 | [`hammurapi-web`](../hammurapi-web) | Frontend: React single-page app with the Milkdown editor |
-| `hammurapi` (this one) | Docs, installer, `docker-compose.yml`, Helm chart, `rules/` |
+| `hammurapi` (this one) | Docs, Helm chart, `rules/` |
 
 ## Contents
 
 - [Hammurapi SDLC (H-SDLC)](#hammurapi-sdlc-h-sdlc)
 - [How it works](#how-it-works)
 - [Features](#features)
-- [Quick start](#quick-start)
 - [Installation for your team](#installation-for-your-team)
 - [Architecture](#architecture)
 - [Repository layout](#repository-layout-of-a-hammurapi-instance)
@@ -108,7 +108,8 @@ every commit carries trailers linking it to the feature, the task and the initia
   reject, merge or move.
 - **Quality gates** for product, design, architecture, tech and QA specifications, with
   sequential approval, history of every event (author, time, commit) and diffs since approval.
-- **Code generation**: a runner task per service (a Kubernetes Job with the agent in a sandbox),
+- **Code generation**: a task per service — a service agent of Nabu works in a sandbox on a copy
+  of the repository, Hammurapi commits the changes as the bot and opens the PR,
   autonomy chosen by the service owner (`plan`, `pr`, `autonomous`), review comments on the PR
   go back to the agent, and a coverage matrix of requirements → services → test cases → PRs.
 - **Validation**: JUnit results from CI linked to QA test cases, optional stage deploy and e2e,
@@ -120,8 +121,9 @@ every commit carries trailers linking it to the feature, the task and the initia
   domain experts and service owners.
 - **WYSIWYG editor** over markdown (CommonMark + GFM: tables, task lists), with deterministic
   serialization — opening and saving a document never produces a noisy diff.
-- **AI agent as a partner** in a chat on every screen, aware of the open issue, feature or release;
-  it acts only within the user's permissions and cannot delete anything.
+- **AI agent as a partner** in a chat on every screen: the personal agent of the user in Nabu, the
+  same as in the messenger, aware of the open issue, feature or release; it acts only within the
+  user's permissions and cannot delete anything.
 - **Voice input** (push-to-talk with a transcript you review before sending), **attachments** and
   a **personal agent** name and tone.
 - **Rules**: document templates per area edited in the admin panel; a change becomes a PR/MR and
@@ -131,30 +133,6 @@ every commit carries trailers linking it to the feature, the task and the initia
 - **Five interface languages**: English (default), Russian, German, Spanish, Chinese (Simplified);
   light and dark theme; desktop and mobile layouts.
 - **GitHub or GitLab** (cloud or self-hosted), one provider per instance.
-
-## Quick start
-
-A demo on your machine in a few minutes, without a GitHub/GitLab account or an LLM. It uses a
-built-in **fake GitLab** (specification and service repositories, CI, deploys, a Prometheus
-endpoint) and a **scripted agent** that writes Discovery, generated gates and code by a script —
-both for development only.
-
-Requirements: Docker with Compose v2. `hammurapi-core` and `hammurapi-web` next to this directory
-(the installer clones them if they are missing).
-
-```sh
-./install/install.sh --demo            # Linux, macOS, WSL, Git Bash
-.\install\install.ps1 -Demo            # Windows PowerShell
-```
-
-Then open <http://localhost:8080>, choose **Sign in with GitLab** and pick `admin` (global
-administrator) or any other login. As admin: create a domain and a system in
-**Administration → Domains and systems**, make yourself its product and technical expert, add the
-services `demo/booking` and `demo/pricing` in **Administration → Services**, then press
-**New issue**.
-
-To check the whole cycle end to end — issue, Discovery, gates, code generation, validation,
-release and rollback: `scripts/e2e-smoke.sh` against the running demo.
 
 ## Installation for your team
 
@@ -172,16 +150,11 @@ release and rollback: `scripts/e2e-smoke.sh` against the running demo.
 4. **Set up the bot**: the GitHub App installed on all repositories, or a GitLab bot account with
    `GITLAB_BOT_TOKEN`. Then connect CI results, deploy, feature flags, the catalog and metric
    sources — see [docs/cycle.md](docs/cycle.md).
-5. **Connect an LLM.** The agent is [Pi](https://www.npmjs.com/package/@earendil-works/pi-coding-agent),
-   run by Hammurapi's agent operator from the core image. Give it a DeepSeek key with
-   `BOOTSTRAP_DEEPSEEK_API_KEY`, or add the connection after the first sign-in in
-   **Administration → Agent**, where models per scenario, skills and MCP servers are set too
-   (see [docs/agent.md](docs/agent.md)).
-6. **Run it:**
-   - single host: `./install/install.sh` asks for the settings, writes `.env`, generates secrets
-     and starts Docker Compose;
-   - Kubernetes: the Helm chart in [`helm/hammurapi`](helm/hammurapi) (see
-     [docs/deployment.md](docs/deployment.md)).
+5. **Connect Nabu.** Hammurapi does not start without it: create the service client of Hammurapi in
+   Nabu and set `NABU_URL`, `NABU_CLIENT_ID`, `NABU_CLIENT_SECRET`. After the first sign-in bind the
+   scenarios to service agents of Nabu in **Administration → Nabu** (see [docs/agent.md](docs/agent.md)).
+6. **Run it** with the Helm chart in [`helm/hammurapi`](helm/hammurapi) (see
+   [docs/deployment.md](docs/deployment.md)).
 7. **Sign in** with a login listed in `BOOTSTRAP_ADMINS` — it becomes the first global
    administrator — and make your team area admins and domain experts.
 
@@ -189,31 +162,27 @@ release and rollback: `scripts/e2e-smoke.sh` against the running demo.
 
 ```text
 Browser ── SPA (hammurapi-web) ──▶ api ──────────────▶ GitHub / GitLab API
-              ▲   SSE               │ ▲  ▲ :8081 internal   (specs, service repos, CI, tags)
-              │                     │ │  └──────── runner Jobs (one per service task)
-              │                     │ │ MCP tools      ▲ workspace │ webhooks: git, CI results,
-              │                     ▼ │                │ :8095     │ deploy, feature flags
-              │             agent operator (Pi) ◀── sessions ── api, worker, runner Jobs ──▶ LLM
-              │                     ▼                            ▼
-              │                 Postgres ◀──── worker ◀── Kafka
-              └──── NOTIFY ◀────────┘  workflows │ agent scenarios (Analysis, gates, checks)
+              ▲   SSE               │  ▲               (specs, service repos, CI, tags)
+              │                     │  │ /mcp/nabu     webhooks: git, CI results, deploy, flags
+              │       chat proxy ───┼──┼──────────▶ Nabu (personal agents, service agents,
+              │                     ▼  │                  sandboxes for code)
+              │                 Postgres ◀── worker ◀── Kafka        ▲ runs, working copies
+              └──── NOTIFY ◀────────┘     workflows ─────────────────┘ MCP of runs (:8083)
                              MinIO (attachments, archives)   Whisper (voice)   metric sources
 ```
 
 | Component | Role |
 | --- | --- |
-| `api` | REST API for the SPA and admin panel (including Administration → Agent), SSE stream, webhook intake (git, CI results, deploy, flags), the chat, internal API on `:8081` (MCP, runner tasks) |
-| `worker` | Kafka consumers (git events, imports), the workflow engine (Discovery, gate generation, code generation, validation, release, rollback), agent scenarios through the operator, runner Jobs, daily catalog sync |
-| `agent` | The agent operator: a Pi process per chat or task session, with the model, key, skills and MCP servers of the scenario |
-| `runner` | One code task: checks out a service repository through the provider API, opens an agent session and serves the checkout to Pi's file and shell tools, commits as the bot, opens or updates the PR |
+| `api` | REST API for the SPA and admin panel, SSE stream, webhook intake (git, CI results, deploy, flags), the chat proxied to the personal agent of the user in Nabu, `/mcp/nabu` for the personal agents |
+| `worker` | Kafka consumers (git events, imports), the workflow engine (Discovery, gate generation, code generation, validation, release, rollback), runs of the service agents of Nabu and their MCP (`:8083`), code tasks, daily catalog sync |
 | `cleaner` | Daily job: expired attachments, sessions, locks, unconfirmed imports, leftover branches |
 | `migrate` | Database migrations (goose), run before `api`/`worker` roll out |
-| Postgres | Issues, features, gates, tasks, releases, workflow runs and outbox, users, roles, chat |
+| Postgres | Issues, features, gates, tasks, releases, workflow runs and outbox, users, roles |
 | Git provider | Source of truth for documents, rules and code; accessed only through its API, no local clone |
 | Kafka | Git events (partitioned by repository and feature, so changes are applied in order) and imports |
 | MinIO / S3 | Chat attachments and import archives |
 | Whisper | Speech recognition for voice input |
-| LLM | The administrator's connection (DeepSeek in the first release); errors are shown in plain words, usage and cost are counted per scenario |
+| Nabu | The agent: models, skills, MCP, sandboxes, usage and audit; required |
 
 Key design decisions:
 
@@ -222,19 +191,15 @@ Key design decisions:
   the UI.
 - **No stale approvals.** Before approving, Hammurapi asks the provider for the latest commit of
   the gate and refuses if the database has not seen it yet.
-- **The agent's permissions come from the user or the task.** Each chat session gets an MCP grant
-  scoped to the user's roles and the open issue, feature or release; each background session and
-  runner task gets a grant for its one job (Discovery of an issue, generation of a gate, the code
-  of one service). There is no delete tool.
+- **The agent's permissions come from the user or the task.** A personal agent calls Hammurapi
+  with the roles of its user; each run of a service agent gets a grant for its one job (Discovery
+  of an issue, generation of a gate, the code of one service). There is no delete tool.
 - **Durable workflows.** Every cycle step is a state machine persisted in Postgres with an outbox
   of effects; workers lease runs with `SKIP LOCKED`, retry effects with backoff, and block a run
   with the reason instead of failing silently.
-- **Untrusted code stays in a sandbox.** Runner Jobs have no service account token, a read-only
-  root filesystem, a deadline and a NetworkPolicy; they get a short-lived git token for their one
-  repository from the internal API.
-- **Agent sessions live in the operator**: one Pi process per chat or task session; an idle chat
-  session is saved to S3 and restored with the next message, so `api` stays stateless (sticky
-  sessions only keep the streamed answer on the user's SSE connection).
+- **Code runs in the sandbox of Nabu, git stays in Hammurapi.** A code task uploads a working copy
+  of the branch to Nabu; the agent changes it in a sandbox without git credentials; the worker
+  takes the changes, commits them as the bot and opens the PR.
 
 ## Repository layout of a Hammurapi instance
 
@@ -262,12 +227,12 @@ Commits made by Hammurapi carry trailers — `Hammurapi-Feature`, `Hammurapi-Are
 | --- | --- |
 | [docs/configuration.md](docs/configuration.md) | Every environment variable |
 | [docs/git-providers.md](docs/git-providers.md) | GitHub App / GitLab application, webhook, repository setup |
-| [docs/cycle.md](docs/cycle.md) | Development cycle: bot, services and catalog, runner, CI results, deploy, feature flags, metric sources, releases |
-| [docs/agent.md](docs/agent.md) | The Pi agent and its operator, Administration → Agent, MCP tools, LLM errors, fakellm |
-| [docs/deployment.md](docs/deployment.md) | Docker Compose and Kubernetes (Helm) |
+| [docs/cycle.md](docs/cycle.md) | Development cycle: bot, services and catalog, code tasks, CI results, deploy, feature flags, metric sources, releases |
+| [docs/agent.md](docs/agent.md) | Nabu as the agent: the chat, service agents of the scenarios, code in the sandbox, MCP tools, LLM errors |
+| [docs/deployment.md](docs/deployment.md) | Kubernetes (Helm) |
 | [docs/operations.md](docs/operations.md) | Health checks, metrics, logs, tracing, backups, troubleshooting |
 | [docs/api.md](docs/api.md) | HTTP API overview and error codes |
-| [docs/development.md](docs/development.md) | Local development, tests, fake GitLab and fake agent |
+| [docs/development.md](docs/development.md) | Local development and tests |
 
 ## Development
 
@@ -277,9 +242,6 @@ cd ../hammurapi-core && make test && make test-integration   # integration needs
 
 # frontend (Node 24)
 cd ../hammurapi-web && npm ci && npm test && npm run dev      # dev server proxies to localhost:8080
-
-# the whole stack
-docker compose --profile demo up -d --build && scripts/e2e-smoke.sh
 ```
 
 See [docs/development.md](docs/development.md).

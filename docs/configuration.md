@@ -1,11 +1,10 @@
 # Configuration
 
 Every setting of a Hammurapi instance is an environment variable. Secrets come from a Kubernetes
-Secret (Helm) or from `.env` (Docker Compose). Empty values mean "use the default".
+Secret (Helm). Empty values mean "use the default".
 
-`api`, `worker` and `cleaner` read the same variables; `migrate` only needs `DATABASE_URL`; the
-agent operator (`hammurapi agent`) reads only the `AGENT_*` and `PI_*` variables below; a runner
-task gets its settings from the worker (`HAMMURAPI_TASK_TOKEN`, `HAMMURAPI_INTERNAL_URL`).
+`api`, `worker` and `cleaner` read the same variables; `migrate` only needs `DATABASE_URL`.
+`api` and `worker` do not start without Nabu (see [Nabu](#nabu)).
 
 ## URLs and listeners
 
@@ -14,9 +13,8 @@ task gets its settings from the worker (`HAMMURAPI_TASK_TOKEN`, `HAMMURAPI_INTER
 | `PUBLIC_URL` | URL people open. Used for the OAuth callback (`<PUBLIC_URL>/api/v1/auth/callback`); `https://` turns on `Secure` cookies | `http://localhost:8080` |
 | `HTTP_ADDR` | User API, admin API and webhooks | `:8080` |
 | `SERVICE_ADDR` | `/healthz`, `/readyz`, `/metrics` (no authentication — keep it internal) | `:9100` |
-| `INTERNAL_ADDR` | Internal API: `/mcp` for chat agents, `/internal/v1/…` for runner tasks (task token). Reachable from runners, never through the ingress. `MCP_ADDR` is the old name | `:8081` |
-| `INTERNAL_URL` | URL of the internal API as seen from runners | `http://localhost:<INTERNAL_ADDR port>` |
-| `WORKER_MCP_ADDR` | MCP endpoint of the worker's one-off agent sessions (Discovery, gate generation, checks); loopback only | `127.0.0.1:8083` |
+| `WORKER_MCP_ADDR` | MCP endpoint of the worker for the runs of service agents of Nabu (Discovery, gate generation, checks, code tasks) | `:8083` |
+| `WORKER_MCP_URL` | Address of that endpoint inside the network; the default of `NABU_WORKER_MCP_URL` | `http://localhost:8083` |
 | `HOOKS_URL` | Base URL of `/hooks/v1/*` given to deploy systems as the callback | `PUBLIC_URL` |
 
 ## Git provider
@@ -27,7 +25,7 @@ One provider and one repository per instance.
 | --- | --- | --- |
 | `GIT_PROVIDER` | `github` or `gitlab` | — (required) |
 | `GIT_BASE_URL` | Provider URL as seen from the server (self-hosted GitLab, GitHub Enterprise) | `https://github.com` / `https://gitlab.com` |
-| `GIT_OAUTH_URL` | Provider URL as seen from browsers, if different (split DNS, demo) | `GIT_BASE_URL` |
+| `GIT_OAUTH_URL` | Provider URL as seen from browsers, if different (split DNS) | `GIT_BASE_URL` |
 | `GIT_REPO` | Specifications repository, `owner/name` | — (required) |
 | `GIT_DEFAULT_BRANCH` | Main branch that features are merged into | `main` |
 | `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY` | GitHub App identity | — |
@@ -44,17 +42,8 @@ See [git-providers.md](git-providers.md) and [cycle.md](cycle.md).
 | Variable | Purpose | Default |
 | --- | --- | --- |
 | `CI_RESULTS_SECRET` | HMAC secret of `/hooks/v1/ci-results`; two comma-separated values while rotating | — (CI results are refused) |
-| `RUNNER_EXECUTOR` | `k8s` (a Job per code task) or `local` (subprocesses of the worker, demo only) | `k8s` |
-| `RUNNER_NAMESPACE` | Namespace of runner Jobs | `hammurapi-runners` |
-| `RUNNER_IMAGE` | Image of runner Jobs (the core image) | — (required for `k8s`) |
-| `RUNNER_WORKSPACE_PORT` | Port of the workspace server of a runner task; only the agent operator connects to it | `8095` |
-| `RUNNER_WORKSPACE_HOST` | `local` executor: host name of the worker as seen from the agent operator | the host name |
-| `RUNNER_CPU`, `RUNNER_MEMORY` | Limits of a runner Job | `2`, `4Gi` |
-| `RUNNER_WORKDIR` | Working directories of `local` tasks | `/var/lib/hammurapi/runs` |
-| `RUNNER_TIMEOUT` | Maximum duration of a task (Job `activeDeadlineSeconds`) | `2h` |
-| `RUNNER_TOKEN_LIMIT` | Agent tokens per task; the task fails when exceeded | `3000000` |
-| `RUNNER_MAX_PARALLEL` | Tasks running at once per instance | `10` |
-| `RUNNER_MAX_PARALLEL_PER_REPO` | Tasks running at once per repository | `1` |
+| `CODE_TIMEOUT` | Maximum duration of a code task in the sandbox of Nabu (`RUNNER_TIMEOUT` is read for one release) | `2h` |
+| `CODE_MAX_PARALLEL` | Code tasks running at once per instance; one per service repository (`RUNNER_MAX_PARALLEL` is read for one release) | `10` |
 | `WORKFLOW_MAX_ATTEMPTS` | Attempts of an effect (deploy, merge, agent call…) before the run is blocked | `8` |
 | `WORKFLOW_LEASE` | How long a worker holds a run before another may take it | `2m` |
 | `WORKFLOW_DISPATCHERS` | How many effects a worker runs at once; an effect that runs an agent holds one for minutes, the runs are processed by a loop of their own | `4` |
@@ -113,50 +102,27 @@ email wait for a global administrator in **Admin → Users**.
 
 ## Nabu
 
-With Nabu connected, the chat is the user's personal agent in Nabu, and the scenarios of the cycle
-run on service agents of Nabu bound in **Admin → Nabu**. Register Hammurapi in Nabu (**Nabu → Admin →
-Clients**, rights `delegate` and `import`, service agents allowed), then set:
+Nabu is the agent of Hammurapi and is **required**: `api` and `worker` do not start without
+`NABU_URL`, `NABU_CLIENT_ID` and `NABU_CLIENT_SECRET`. The chat is the user's personal agent in
+Nabu, and the scenarios of the cycle run on service agents of Nabu bound in
+**Administration → Nabu**. Register Hammurapi in Nabu (**Nabu → Administration → Clients**, right
+`delegate`, service agents allowed), then set:
 
 | Variable | Purpose | Default |
 | --- | --- | --- |
-| `NABU_URL` | Address of the Nabu API, e.g. `https://nabu-api.example.com`; empty — no Nabu | — |
-| `NABU_CLIENT_ID`, `NABU_CLIENT_SECRET` | The service client of Hammurapi in Nabu | — (required with `NABU_URL`) |
+| `NABU_URL` | Address of the Nabu API, e.g. `https://nabu-api.example.com` | — (required) |
+| `NABU_CLIENT_ID`, `NABU_CLIENT_SECRET` | The service client of Hammurapi in Nabu | — (required) |
 | `NABU_CLIENT_NAME` | The name of that service client in Nabu: Nabu names the channel of messages written in Hammurapi `client:<name>`, and only this channel may give instructions to the researcher of Discovery (FTR.HMR.DISC-0001 R6) | `hammurapi` |
 | `NABU_JWKS_CACHE` | How long the signing keys of Nabu are cached | `10m` |
-| `NABU_WORKER_MCP_URL`, `NABU_TASK_MCP_URL` | The MCP of the worker and of `api` (runner tasks) as Nabu reaches them | `WORKER_MCP_URL/mcp`, `INTERNAL_URL/mcp` |
+| `NABU_WORKER_MCP_URL` | The MCP of the worker as the service agents of Nabu reach it | `WORKER_MCP_URL/mcp` |
+| `NABU_WEB_URL` | The site of Nabu: global administrators get a link from a code task to the runs of Nabu | — (no link) |
 
 The personal agents of Nabu call `POST <PUBLIC_API_URL>/mcp/nabu` with a JWT of Nabu (audience
 `hammurapi`) and `Nabu-On-Behalf-Of: <email>`; Hammurapi applies the rights of that user.
 
-Without `NABU_URL` and without `AGENT_SERVICE_TOKEN` Hammurapi works **without the agent**: issues go
-straight to verification and experts fill in the value and the measure, people write `tech` and `qa`,
-code generation is unavailable. Specifications, approvals, validation and releases work as usual.
-
-## Agent
-
-LLM connections, models by scenario, skills and MCP servers are not environment variables: global
-administrators set them in **Admin → Agent**. See [agent.md](agent.md).
-
-| Variable | Purpose | Default |
-| --- | --- | --- |
-| `AGENT_SERVICE_TOKEN` | Shared token of `api`, `worker` and the built-in agent operator; empty — no built-in agent | — (required for `agent`) |
-| `AGENT_ADDR` | Address of the agent operator for `api` and `worker` | `http://agent:8090` |
-| `AGENT_RUNNER_URL` | Address of the agent operator as seen from runner tasks | `AGENT_ADDR` |
-| `AGENT_IDLE_TIMEOUT` | Idle chat and task sessions are saved and closed after this Go duration | `15m` |
-| `WORKER_MCP_ADDR`, `WORKER_MCP_URL` | Listener of the worker's MCP server for background scenarios, and its address as seen from the operator | `:8083`, `http://localhost:8083` |
-| `BOOTSTRAP_DEEPSEEK_API_KEY` | Creates the first LLM connection (DeepSeek) and the default model once, when there are no connections | — |
-| `BOOTSTRAP_DEEPSEEK_BASE_URL` | Development and demos: the address of that connection (e.g. `http://fakellm:8099`) | `https://api.deepseek.com` |
-
-Agent operator only:
-
-| Variable | Purpose | Default |
-| --- | --- | --- |
-| `AGENT_LISTEN_ADDR` | Listener of the operator API | `:8090` |
-| `AGENT_MAX_SESSIONS` | Pi processes at once | `20` |
-| `AGENT_MAX_TASK_SESSIONS` | Of them, sessions of runner tasks | `4` |
-| `AGENT_WORKDIR` | Directories of sessions | `/work` |
-| `PI_BINARY`, `PI_EXTENSION_DIR` | Pi and the `hammurapi-workspace` extension (set in the release image) | `/usr/local/bin/pi`, `/opt/hammurapi/pi-extensions/hammurapi-workspace` |
-| `PI_EXTRA_ENV` | Extra environment of Pi processes, space-separated `KEY=VALUE` (e.g. a proxy) | — |
+Models, skills, MCP servers, sandboxes and proxies of the agents are configured in Nabu. Code
+agents need the workspace "Nabu sandbox", the profile `code` and the proxy "Package registries".
+See [agent.md](agent.md).
 
 ## Infrastructure
 
@@ -191,9 +157,3 @@ sets it in **Administration → Settings** (default 90 days).
 | --- | --- | --- |
 | `LOG_LEVEL` | `debug`, `info`, `warn`, `error` (JSON logs on stdout) | `info` |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | OTLP/HTTP endpoint for traces; the standard `OTEL_*` variables apply | — (no export) |
-
-## Docker Compose only
-
-| Variable | Purpose | Default |
-| --- | --- | --- |
-| `PI_VERSION` | Pi version installed in the locally built operator image (`hammurapi-core/deploy/versions.env` in releases) | `1.1.0` |

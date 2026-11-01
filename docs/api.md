@@ -10,7 +10,7 @@ The SPA uses the same API as any other client. Full contracts: the tech specific
 | `/admin/api/v1/…` | Administration | Same, plus a global or area administrator |
 | `/hooks/v1/git` | Provider webhooks of the spec, service and catalog repositories | `WEBHOOK_SECRET` |
 | `/hooks/v1/ci-results`, `/hooks/v1/deploy`, `/hooks/v1/feature-flags` | CI, deploy and flag systems ([cycle.md](cycle.md)) | HMAC `X-Hammurapi-Signature` + `X-Hammurapi-Timestamp` |
-| `:8081 /mcp`, `:8081 /internal/v1/…` | Agents and runner tasks; never exposed through the ingress | Grant or task token (`Bearer hmt_…`) |
+| `:8083 /mcp` of the worker | Runs of the service agents of Nabu; never exposed through the ingress | Grant or task token (`Bearer hmt_…`) |
 | `:9100 /healthz /readyz /metrics` | Service | none |
 
 Conventions: JSON; cursor pagination `?cursor=&limit=` with `nextCursor` in the response; entities
@@ -22,7 +22,7 @@ answers `308` with the new key.
 
 | Method and path | Purpose |
 | --- | --- |
-| `GET /api/v1/config` | Provider, limits, languages (no authentication) |
+| `GET /api/v1/config` | Provider, limits, languages, `nabuWebUrl` (no authentication) |
 | `GET /api/v1/auth/login`, `GET /api/v1/auth/callback` | OAuth sign-in through the provider |
 | `GET /api/v1/auth/me`, `POST /api/v1/auth/logout` | Current user and roles (global/area admin, product/technical expert of domains, service owner); sign out |
 | `GET/PATCH /api/v1/profile`, `GET /api/v1/agent-tones` | Language, theme, my domains, agent name and tone |
@@ -56,7 +56,9 @@ answers `308` with the new key.
 | `GET/PUT /admin/api/v1/deploy/{env}`, `POST …/deploy/{env}/secret/rotate`, `POST …/deploy/{env}/test` | Deploy per environment; dry run |
 | `GET/POST /admin/api/v1/metric-sources`, `PATCH/DELETE …/{name}`, `POST …/{name}/test` | Metric sources; dry run of a query |
 | `GET /admin/api/v1/rules/{area}`, `POST …/rules/{area}/changes`, `GET …/rules/changes[/{id}]`, `POST …/approve`, `POST …/withdraw` | Rules via PR/MR (area admins) |
-| `GET/PATCH /admin/api/v1/settings`, `POST …/settings/feature-flags/secret/rotate` | Attachment retention, feature-flag webhook, stage, runner executor |
+| `GET /admin/api/v1/nabu`, `PUT …/nabu/scenarios` | The connection to Nabu (`connected`, `lastOkAt` — the last answer of Nabu), its service agents, the binding of the scenarios and `scenarioRows` — the scenarios in order, `code` for those that change code |
+| `GET /admin/api/v1/agent/usage` | Usage of the runs of Nabu agents for reports (global admin) |
+| `GET/PATCH /admin/api/v1/settings`, `POST …/settings/feature-flags/secret/rotate` | Attachment retention, feature-flag webhook, stage |
 
 ## Errors
 

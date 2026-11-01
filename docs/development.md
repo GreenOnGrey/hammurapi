@@ -1,56 +1,33 @@
 # Development
 
-Check out the three repositories side by side:
+Check out the repositories side by side:
 
 ```text
-hammurapi/        docs, compose, Helm, installer, rules
+hammurapi/        docs, Helm chart, rules
 hammurapi-core/   Go backend
 hammurapi-web/    React SPA
+nabu-core/        the agent platform Hammurapi requires
 ```
 
-Tools: Go 1.27, Node 24, Docker with Compose v2.
+Tools: Go 1.27, Node 24, Docker (integration tests).
 
-## Run the stack
-
-```sh
-cd hammurapi
-cp .env.example .env              # or: ./install/install.sh --demo
-docker compose --profile demo up -d --build
-```
-
-The `demo` profile adds **fakegitlab** (`hammurapi-core/cmd/fakegitlab`): an in-memory imitation of
-the GitLab endpoints Hammurapi uses — OAuth, branches, files, multi-file commits, merge requests
-with a three-way merge, diffs, notes, tags, pipelines, issues, search — for the specification
-repository and the service repositories in `FAKE_SERVICE_REPOS` (`demo/booking`, `demo/pricing`).
-It sends real push, tag, merge request and note webhooks to `api`, simulates CI (a JUnit report
-with the `Test<ID>_…` tests of a branch, signed with `FAKE_CI_SECRET`), answers pipeline triggers
-with a deploy callback, and serves a Prometheus endpoint (`/fake/prometheus`) for metric sources.
-Its sign-in page lets you choose any login. `FAKE_REFUSE_MERGE=1` makes it refuse merges, to test
-provider refusals. Development only.
-
-Code tasks run with `RUNNER_EXECUTOR=local` in compose (subprocesses of the worker).
-
-The agent in compose is the real one: the `agent` service (the operator with Pi, built from the
-`release` target of `hammurapi-core`). In the `demo` profile its first LLM connection points at
-**fakellm** (`hammurapi-core/cmd/fakellm`), a scripted OpenAI-compatible endpoint
-(`BOOTSTRAP_DEEPSEEK_BASE_URL=http://fakellm:8099`). To try a real model, put a DeepSeek key into
-`BOOTSTRAP_DEEPSEEK_API_KEY` and clear `BOOTSTRAP_DEEPSEEK_BASE_URL` before the first start, or
-add a connection in **Admin → Agent**.
+There is no local demo stack: Hammurapi needs Nabu, a git provider, Postgres, Kafka and S3. Run
+`api` and `worker` against your own infrastructure and a Nabu instance (`NABU_URL`,
+`NABU_CLIENT_ID`, `NABU_CLIENT_SECRET`, see [configuration.md](configuration.md)).
 
 ## Backend
 
 ```sh
 cd hammurapi-core
-make build              # bin/hammurapi, bin/fakellm
+make build              # bin/hammurapi
 make test               # unit tests
 make test-integration   # + Postgres via dockertest v4 (needs Docker)
 make generate           # mocks via `go tool mockgen`
 ```
 
-Run the api against the compose infrastructure from your IDE: take `.env`, replace the service
-names with `localhost` (`postgres`, `kafka`, `minio`), and start `hammurapi migrate`, then
-`hammurapi api` / `hammurapi worker`. Kafka advertises `kafka:9092`, so add `127.0.0.1 kafka` to your
-hosts file when running outside compose.
+Run the api from your IDE: `hammurapi migrate`, then `hammurapi api` / `hammurapi worker` with
+the variables of [configuration.md](configuration.md). `cmd/fakegitlab` (an in-memory imitation of
+the GitLab API) is a test helper of `hammurapi-core`, not a stand.
 
 Layout: vertical slices in `internal/features/*` (handlers, service, repository); adapters in
 `internal/platform/*`; the shared projection of features and gates in `internal/specdata`, and of
@@ -69,17 +46,16 @@ npm run build           # typecheck + production build
 ```
 
 Point the dev server at another api with `HAMMURAPI_API=http://host:port npm run dev`. Sign-in
-redirects to the provider and back to `PUBLIC_URL`, so for local UI work either use the compose
-stack on port 8080 or set `PUBLIC_URL=http://localhost:5173` for the api.
+redirects to the provider and back to `PUBLIC_URL`, so for local UI work set
+`PUBLIC_URL=http://localhost:5173` for the api.
 
 ## Tests
 
 | Level | Where | What |
 | --- | --- | --- |
-| Unit | `hammurapi-core` `go test ./...` | Services on mockgen mocks: roles per area, sequential approval, stale approval, locks, deletion rules, webhook projection and idempotency; the Pi RPC client against a fake Pi; the agent operator (sessions, limits, tokens, skills cache); LLM error classes; the runner workspace server (paths, symlinks, clean environment); MCP permissions; providers against `httptest`; archive parsing (zip bombs, traversal) |
-| Integration | `go test -tags integration ./...` | Every repository query on Postgres 16 in Docker; migrations; concurrent numbering; locks; the workflow engine (leases, retries, blocking); the whole cycle from an issue to a release and a rollback with stubbed effects; agent configuration; with `HMR_PI_CMD` — the chat through the operator and a real Pi against fakellm (errors, retry, model switch, snapshot restore) |
+| Unit | `hammurapi-core` `go test ./...` | Services on mockgen mocks: roles per area, sequential approval, stale approval, locks, deletion rules, webhook projection and idempotency; runs of Nabu and LLM error classes; code tasks (working copy, changes, error classes); MCP permissions; providers against `httptest`; archive parsing (zip bombs, traversal) |
+| Integration | `go test -tags integration ./...` | Every repository query on Postgres 16 in Docker; migrations; concurrent numbering; locks; the workflow engine (leases, retries, blocking); the whole cycle from an issue to a release and a rollback with stubbed effects; Discovery and the chat with a fake Nabu; the usage report |
 | Frontend | `hammurapi-web` `npm test` | All five locales have the same keys and valid ICU; fallback to English; Russian plurals; `Intl` formatting |
-| End to end | `hammurapi/scripts/e2e-smoke.sh` | Through the web origin against the demo stack: an issue, Analysis by the agent (Pi + fakellm), acceptance, human gates, generated tech/qa, code generation in the runner, CI results, signatures, a release (merge order, deploy marks, confirmation), a second release through a pipeline, and a rollback |
 
 ## Translations
 
