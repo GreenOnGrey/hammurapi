@@ -19,6 +19,9 @@ spec:
       imagePullSecrets: {{- toYaml . | nindent 8 }}
       {{- end }}
       securityContext: {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      # Explicit: after an upgrade from a chart with its own ServiceAccount the
+      # deprecated twin serviceAccount would bring the deleted account back.
+      serviceAccountName: default
       automountServiceAccountToken: false
       containers:
         - name: worker

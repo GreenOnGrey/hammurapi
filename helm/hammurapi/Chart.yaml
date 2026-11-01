@@ -2,7 +2,7 @@ apiVersion: v2
 name: hammurapi
 description: "Hammurapi — the product development cycle with an AI agent: issues, specifications through quality gates, code, validation and releases"
 type: application
-version: 2.0.0
+version: 2.0.1
 appVersion: "1.2.0"
 keywords: [specifications, quality-gates, agent, nabu]
 home: https://github.com/GreenOnGrey/hammurapi

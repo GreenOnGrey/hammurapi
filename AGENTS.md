@@ -26,6 +26,15 @@ rules/                   default rules of a specification repository — keep it
 Every product change that adds a setting, a service or behaviour visible to operators updates
 `docs/` (configuration.md lists every environment variable).
 
+## Checks before a commit
+
+A change is ready when every job of `.github/workflows/checks.yml` passes locally at the versions the workflow pins, plus the
+matching lines below. Read the workflow for the exact commands. Install a missing tool outside the repository
+at the pinned version. Name any job you could not run in your report, with the reason.
+
+- `deploy-component.yml`: `bats tests/unit/public.bats` in `hammurapi-infra`, and tag this repository before bumping `DEPLOY_WORKFLOW_REF`.
+- `helm/**`: `helm lint` and `helm template` with `nabu.url` and `nabu.clientId`, and check the upgrade from the previous chart version: a dropped field can come back through its deprecated twin, so set the new value explicitly.
+
 ## No demo stack
 
 Hammurapi requires Nabu (FTR.HMR.CMN-0007 R1): there is no compose file, installer or demo here,
