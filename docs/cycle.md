@@ -4,7 +4,7 @@ Hammurapi runs a feature from an issue to a confirmed release (FTR.HMR.CMN-0002)
 
 ```text
 Discovery     issue (idea | problem) → Analysis by the agent → accepted
-Development   feature → human gates (product, design, arch) → generated gates (tech, qa)
+Development   feature → the writer: product, design, arch with questions to experts → tech, qa
               → codegen: one task per service in the sandbox of Nabu → PRs → CI results → validation → signatures
 Delivery      release: merge → deploy → flag → value metric → confirm   (or rollback)
 ```
@@ -193,6 +193,25 @@ with a link to the release and starts a new Analysis.
   the same; Kafka still carries git provider events.
 - R30 (metric window evaluation) and R35 (automatic Problem issue on a failed metric) are planned
   for the next release.
+
+## The writer of specifications
+
+An accepted issue starts the writer: one service agent (the scenario `gate_generation`) writes all
+five documents by the templates of `rules/`, from the whole Discovery of the issue.
+
+- **product, design, arch:** a draft with assumptions at once and rounds of questions with
+  recommendations. Experts of the kind that approves the gate answer on the page or through their
+  personal agent. The next stage starts when the gate is approved; in a domain without approval
+  an expert presses «Next stage». The writer proposes to skip design or arch, an expert decides.
+- **tech, qa:** one run after arch, no questions; they are only approved.
+- **Changes through the chat:** every user has a topic per feature on the Specification tab. Experts
+  give the writer instructions there. An approved gate changes only when an instruction names it or
+  an expert allows it in an answer; it returns to draft and is approved again by its experts.
+  After that the writer checks the gates below it.
+- **Manual edits** of product, design and arch stay; a run waits for the end of an edit.
+- **Nabu down:** runs wait and start when it is back. Other failures stop the run with a reason and «Retry».
+
+Allow `request_spec_revision` and `read_spec_questions` for the connection `hammurapi` in the catalog of Nabu.
 
 ## Specifications added past Hammurapi (repository check)
 

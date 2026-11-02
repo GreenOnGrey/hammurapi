@@ -58,10 +58,10 @@ on — shows them and hides the tools that change data, `create_issue` among the
 | `read_spec`, `read_rules`, `list_services` | yes | yes | yes | yes | its feature |
 | `read_service_file` | no | yes | yes | yes | no (it has the working copy) |
 | `test_metric_query` | with an open context | yes | no | no | no |
-| `edit_spec` | human gates the user may edit, not approved, not generated | no | no | no | no |
-| `edit_discovery`, `regenerate_gate` | with an open issue / feature, within the user's roles | no | no | no | no |
+| `request_discovery_revision` | experts of the domain, from the chat of the issue | no | no | no | no |
+| `request_spec_revision`, `read_spec_questions` | experts of the domain, from the Specification tab of the feature (`read_spec_questions`: anyone) | no | no | no | no |
 | `save_discovery` | no | its issue | no | no | no |
-| `submit_gate` | no | no | its gate | no | no |
+| `submit_gate`, `submit_gate_file` | no | no | the areas of its run | no | no |
 | `report_discrepancy` | no | no | no | its feature | no |
 | `report_progress` | no | no | no | no | its task |
 

@@ -34,10 +34,14 @@ answers `308` with the new key.
 | `GET /api/v1/features`, `GET/PATCH/DELETE /api/v1/features/{id}` | List, card (phase, issues, services, release, permissions), flag key, delete (`confirmKey`) |
 | `GET /api/v1/features/{id}/requirements` | Requirements with IDs and the coverage matrix |
 | `POST/DELETE /api/v1/features/{id}/lock` | Take or extend / release the edit lock |
-| `POST /api/v1/features/{id}/gates`, `GET/DELETE …/gates/{area}` | Add, read, delete a gate |
-| `GET/PUT …/gates/{area}/document` | Markdown and its SHA; save with `baseSha` (generated gates are read-only) |
+| `GET …/gates/{area}` | Read a gate; the writer of specifications creates and removes gates |
+| `GET …/topic`, `POST …/topic/messages` (under `/api/v1/features/{id}`) | The topic of the user in the chat; the first message creates it |
+| `GET …/spec/questions`, `POST …/spec/answers` | Open questions of the writer by gate; answers of an expert, `allowTouches` lets an answer change the other gates its question names |
+| `POST …/spec/advance`, `POST …/spec/retry` | Next stage in a domain without approval; repeat a stopped run of the writer |
+| `GET /api/v1/spec-requests/{id}` | An instruction to the writer and its state |
+| `GET/PUT …/gates/{area}/document` | Markdown and its SHA; save with `baseSha` (tech and qa, and documents the writer is working on, are read-only) |
 | `GET …/gates/{area}/diff`, `GET …/gates/{area}/history` | Diff since approval; events |
-| `POST …/gates/{area}/submit\|approve\|regenerate` | Workflow transitions; regenerate tech/qa |
+| `POST …/gates/{area}/submit\|approve` | Workflow transitions; `forceQuestions` submits a gate with open questions |
 | `GET /api/v1/approvals` | "Awaiting your approval" |
 | `POST /api/v1/features/{key}/codegen`, `GET …/implementation`, `POST …/codegen/tasks/{taskId}/retry` | Start code generation; tasks, PRs and coverage by service; retry a task |
 | `GET …/validation`, `POST …/validation/sign\|return`, `POST …/stage/deploys/{service}/mark` | Test results and signatures; sign (the last signature creates a release) or return to development; manual stage deploy mark |

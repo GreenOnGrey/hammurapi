@@ -48,6 +48,7 @@ See [git-providers.md](git-providers.md) and [cycle.md](cycle.md).
 | `WORKFLOW_LEASE` | How long a worker holds a run before another may take it | `2m` |
 | `WORKFLOW_DISPATCHERS` | How many effects a worker runs at once; an effect that runs an agent holds one for minutes, the runs are processed by a loop of their own | `4` |
 | `DISCOVERY_TIMEOUT` | Maximum duration of one Discovery session | `20m` |
+| `WRITER_TIMEOUT` | Maximum duration of one run of the writer of specifications | `30m` |
 
 Deploy settings, the feature-flag webhook, the Backstage catalog, stage and metric sources are not
 environment variables: administrators set them in the web app (see [cycle.md](cycle.md)).
