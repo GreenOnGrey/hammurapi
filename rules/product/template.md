@@ -30,7 +30,7 @@ acceptance criteria. Tests, code and PRs refer to these IDs.
 
 | Metric | Source | Query | Target | Evaluation window |
 | --- | --- | --- | --- | --- |
-| <name> | Prometheus / ClickHouse | <query> | <value> | <e.g. 4 weeks after the release> |
+| <name> | <from Discovery, otherwise empty> | <from Discovery, otherwise empty> | <value> | <e.g. 4 weeks after the release> |
 
 ## Decisions
 
