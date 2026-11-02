@@ -39,5 +39,3 @@ release merges and deploys the services in the order they are first mentioned he
 
 | # | Decision | Rationale |
 | --- | --- | --- |
-
-## Open questions

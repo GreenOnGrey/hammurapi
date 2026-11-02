@@ -36,5 +36,3 @@ acceptance criteria. Tests, code and PRs refer to these IDs.
 
 | # | Decision | Rationale |
 | --- | --- | --- |
-
-## Open questions

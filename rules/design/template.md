@@ -28,5 +28,3 @@ Links or files next to this document.
 
 | # | Decision | Rationale |
 | --- | --- | --- |
-
-## Open questions
