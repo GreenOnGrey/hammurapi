@@ -43,6 +43,7 @@ See [git-providers.md](git-providers.md) and [cycle.md](cycle.md).
 | --- | --- | --- |
 | `CI_RESULTS_SECRET` | HMAC secret of `/hooks/v1/ci-results`; two comma-separated values while rotating | — (CI results are refused) |
 | `CODE_TIMEOUT` | Maximum duration of a code task in the sandbox of Nabu (`RUNNER_TIMEOUT` is read for one release) | `2h` |
+| `CODE_CHECK_MAX_REPAIRS` | Repair rounds of the agent after a failed readiness check of a code task (`FTR.HMR.CMN-0008`) | `2` |
 | `CODE_MAX_PARALLEL` | Code tasks running at once per instance; one per service repository (`RUNNER_MAX_PARALLEL` is read for one release) | `10` |
 | `WORKFLOW_MAX_ATTEMPTS` | Attempts of an effect (deploy, merge, agent call…) before the run is blocked | `8` |
 | `WORKFLOW_LEASE` | How long a worker holds a run before another may take it | `2m` |
