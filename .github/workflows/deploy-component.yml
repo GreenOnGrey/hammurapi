@@ -2,8 +2,7 @@
 # release.yml репозиториев hammurapi-core и hammurapi-web.
 #   uses: GreenOnGrey/hammurapi/.github/workflows/deploy-component.yml@<DEPLOY_WORKFLOW_REF>
 #
-# Лежит в публичном hammurapi: workflow приватного репозитория (installer) нельзя
-# вызвать из публичных core и web. Вся логика — в шагах ниже, без чтения других файлов;
+# Лежит в hammurapi: его вызывают core и web. Вся логика — в шагах ниже, без чтения других файлов;
 # на машине выполняется bin/hammurapi-deploy из развёрнутой версии стенда
 # (/opt/hammurapi-infra/current). Секретов в файле нет — их передаёт вызывающий репозиторий.
 # Секреты передаются на машину только в stdin SSH-сессии (R14).
