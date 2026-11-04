@@ -50,6 +50,7 @@ answers `308` with the new key.
 | `PUT …/plan`, `POST …/merge\|retry\|confirm\|rollback` | Order of services, start, retry a blocked step, confirm, roll back |
 | `POST …/deploys/{service}/mark\|retry`, `POST …/flag/mark` | Manual deploy and flag marks, deploy retry |
 | `POST /api/v1/chat/messages`, `POST /api/v1/chat/voice`, `GET /api/v1/chat/history`, `POST /api/v1/chat/cancel` | Agent chat; `context` = the open issue, feature or release |
+| `GET /api/v1/chat/attachments/{id}`, `GET /api/v1/chat/attachments/{id}/preview` | A file of a message of the chat and its preview, through Nabu; the preview answers `202` while it is being made |
 | `GET /api/v1/events` | One SSE stream: `agent.*`, `issue.updated`, `discovery.progress`, `feature.updated`, `gate.updated`, `task.progress`, `validation.updated`, `release.updated`, `release.blocked`, `focus.changed`, `feature.deleted`, `approvals.changed`, `import.progress` |
 | `POST/GET /api/v1/attachments`, `GET /api/v1/attachments/{id}` | Upload, history, download (owner only) |
 | `POST /api/v1/imports`, `GET/DELETE /api/v1/imports/{id}`, `POST …/revalidate`, `POST …/confirm` | Import from a zip archive |
