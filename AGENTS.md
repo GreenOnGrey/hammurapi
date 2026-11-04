@@ -34,6 +34,7 @@ at the pinned version. Name any job you could not run in your report, with the r
 
 - `deploy-component.yml`: `bats tests/unit/public.bats` in `hammurapi-infra`, and tag this repository before bumping `DEPLOY_WORKFLOW_REF`.
 - `helm/**`: `helm lint` and `helm template` with `nabu.url` and `nabu.clientId`, and check the upgrade from the previous chart version: a dropped field can come back through its deprecated twin, so set the new value explicitly.
+- Always, after the checks pass: run the `code-review` skill on the diff to be committed. Fix each finding, or name it in your report with the reason it stays. Ask the user when you doubt a finding.
 
 ## No demo stack
 
