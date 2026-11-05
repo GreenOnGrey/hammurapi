@@ -1,21 +1,21 @@
-# Переиспользуемая выкатка Hammurapi (FTR.HMR.INFRA-0002, техспека п. 2): вызывается
-# release.yml репозиториев hammurapi-core и hammurapi-web.
+# The reusable rollout of Hammurapi (FTR.HMR.INFRA-0002, tech §2), called by
+# release.yml of the repositories hammurapi-core and hammurapi-web.
 #   uses: GreenOnGrey/hammurapi/.github/workflows/deploy-component.yml@<DEPLOY_WORKFLOW_REF>
 #
-# Лежит в hammurapi: его вызывают core и web. Вся логика — в шагах ниже, без чтения других файлов;
-# на машине выполняется bin/hammurapi-deploy из развёрнутой версии стенда
-# (/opt/hammurapi-infra/current). Секретов в файле нет — их передаёт вызывающий репозиторий.
-# Секреты передаются на машину только в stdin SSH-сессии (R14).
+# It lives in hammurapi and core and web call it. All logic is in the steps below, reading no other files;
+# the machine runs bin/hammurapi-deploy of the deployed stand version
+# (/opt/hammurapi-infra/current). The file holds no secrets: the calling repository passes them.
+# Secrets reach the machine only through the stdin of the SSH session (R14).
 name: deploy-component
 on:
   workflow_call:
     inputs:
       component: { type: string, required: true }            # hammurapi-core | hammurapi-web
       tag: { type: string, required: true }                  # vX.Y.Z
-      run_id: { type: string, default: "" }                  # контракт FTR.HMR.CMN-0002
-      callback_url: { type: string, default: "" }            # контракт FTR.HMR.CMN-0002
+      run_id: { type: string, default: "" }                  # contract FTR.HMR.CMN-0002
+      callback_url: { type: string, default: "" }            # contract FTR.HMR.CMN-0002
       environment: { type: string, default: production }
-      verify_signature: { type: boolean, default: false }    # выкатка без пересборки: cosign verify
+      verify_signature: { type: boolean, default: false }    # rollout without a rebuild: cosign verify
       allow_key_rotation: { type: boolean, default: false }
 
 jobs:
@@ -36,11 +36,11 @@ jobs:
       RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
       CALLBACK_SECRET: ${{ secrets.HAMMURAPI_DEPLOY_CALLBACK_SECRET }}
     steps:
-      - name: Общие функции
+      - name: Shared functions
         run: |
           cat >"$RUNNER_TEMP/hmr.sh" <<'EOF'
-          # send_callback <started|success|failure> [ошибка] — вебхук результата
-          # по контракту FTR.HMR.CMN-0002: HMAC-SHA256 тела, заголовки X-Hammurapi-*.
+          # send_callback <started|success|failure> [error] — the result webhook
+          # by the contract FTR.HMR.CMN-0002: HMAC-SHA256 of the body, headers X-Hammurapi-*.
           send_callback() {
             [[ -n $CALLBACK_URL ]] || return 0
             local status=$1 err=${2:-} body ts sig i
@@ -52,45 +52,45 @@ jobs:
               sig=$(printf '%s' "$body" | openssl dgst -sha256 -hmac "$CALLBACK_SECRET" -hex | sed 's/^.* //')
               if curl -fsS --max-time 15 -X POST "$CALLBACK_URL" -H 'Content-Type: application/json' \
                   -H "X-Hammurapi-Timestamp: $ts" -H "X-Hammurapi-Signature: sha256=$sig" --data "$body" >/dev/null; then
-                echo "вебхук результата: $status"
+                echo "result webhook: $status"
                 return 0
               fi
               ((i < 3)) && sleep 10
             done
-            echo "::warning::вебхук результата «$status» не доставлен на $CALLBACK_URL после 3 попыток"
-            echo "- ⚠️ вебхук результата «$status» не доставлен" >>"$GITHUB_STEP_SUMMARY"
+            echo "::warning::result webhook '$status' was not delivered to $CALLBACK_URL after 3 attempts"
+            echo "- ⚠️ result webhook '$status' was not delivered" >>"$GITHUB_STEP_SUMMARY"
           }
-          # remote <команда> — команда на машине стенда (ssh | gcp-iap); stdin передаётся.
+          # remote <command> — a command on the machine (ssh | gcp-iap); stdin passes through.
           remote() {
             case $DEPLOY_TRANSPORT in
               ssh) ssh -F "$HOME/.ssh/config" prod -- "$1" ;;
               gcp-iap) gcloud compute ssh "$GCP_INSTANCE" --project "$GCP_PROJECT" --zone "$GCP_ZONE" \
                   --tunnel-through-iap --quiet --command "$1" ;;
-              *) echo "::error::DEPLOY_TRANSPORT должен быть ssh или gcp-iap"; return 1 ;;
+              *) echo "::error::DEPLOY_TRANSPORT must be ssh or gcp-iap"; return 1 ;;
             esac
           }
           EOF
 
-      - name: Вебхук started
+      - name: Webhook started
         if: inputs.callback_url != ''
         run: |
           source "$RUNNER_TEMP/hmr.sh"
           send_callback started
 
-      - name: Параметры
+      - name: Parameters
         id: params
         env:
           INPUT_TAG: ${{ inputs.tag }}
         run: |
-          [[ $COMPONENT == hammurapi-core || $COMPONENT == hammurapi-web ]] || { echo "::error::component: hammurapi-core или hammurapi-web"; exit 1; }
-          [[ $INPUT_TAG =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::тег «$INPUT_TAG» не в формате vX.Y.Z"; exit 1; }
-          [[ $DEPLOY_ENVIRONMENT == production ]] || { echo "::error::демо-стенд — только окружение production, а не «$DEPLOY_ENVIRONMENT»"; exit 1; }
+          [[ $COMPONENT == hammurapi-core || $COMPONENT == hammurapi-web ]] || { echo "::error::component: hammurapi-core or hammurapi-web"; exit 1; }
+          [[ $INPUT_TAG =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::tag '$INPUT_TAG' is not in the format vX.Y.Z"; exit 1; }
+          [[ $DEPLOY_ENVIRONMENT == production ]] || { echo "::error::only the environment production is supported, not '$DEPLOY_ENVIRONMENT'"; exit 1; }
           echo "image=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/$COMPONENT" >>"$GITHUB_OUTPUT"
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { ref: "refs/tags/${{ inputs.tag }}" }
 
-      - name: Проверка конфигурации (до подключения к машине)
+      - name: Configuration check (before connecting to the machine)
         id: config
         env:
           HAMMURAPI_GITHUB_APP_ID: ${{ vars.HAMMURAPI_GITHUB_APP_ID }}
@@ -123,8 +123,8 @@ jobs:
           HAS_HAMMURAPI_NABU_CLIENT_SECRET: ${{ secrets.HAMMURAPI_NABU_CLIENT_SECRET != '' }}
         run: |
           missing=()
-          need_var() { local k; for k in "$@"; do [[ -n ${!k:-} ]] || missing+=("$k (переменная)"); done; }
-          need_secret() { local k h; for k in "$@"; do h="HAS_$k"; [[ ${!h:-false} == true ]] || missing+=("$k (секрет)"); done; }
+          need_var() { local k; for k in "$@"; do [[ -n ${!k:-} ]] || missing+=("$k (variable)"); done; }
+          need_secret() { local k h; for k in "$@"; do h="HAS_$k"; [[ ${!h:-false} == true ]] || missing+=("$k (secret)"); done; }
           case $DEPLOY_TRANSPORT in
             ssh) need_var PROD_HOST PROD_USER; need_secret PROD_SSH_KEY PROD_KNOWN_HOSTS ;;
             gcp-iap) need_var GCP_PROJECT GCP_ZONE GCP_INSTANCE GCP_WIF_PROVIDER GCP_SERVICE_ACCOUNT ;;
@@ -141,26 +141,26 @@ jobs:
               *) missing+=("HAMMURAPI_AUTH_PROVIDER (github | oidc)") ;;
             esac
             [[ -n ${HAMMURAPI_AUTH_GITHUB_CLIENT_ID:-} ]] && need_secret HAMMURAPI_AUTH_GITHUB_CLIENT_SECRET
-            # FTR.HMR.CMN-0007 R1: без Nabu Hammurapi не запускается.
+            # FTR.HMR.CMN-0007 R1: Hammurapi does not start without Nabu.
             need_var HAMMURAPI_NABU_URL HAMMURAPI_NABU_CLIENT_ID
             need_secret HAMMURAPI_NABU_CLIENT_SECRET
           fi
           [[ -n $CALLBACK_URL ]] && need_secret HAMMURAPI_DEPLOY_CALLBACK_SECRET
           if ((${#missing[@]})); then
             printf -v list '%s, ' "${missing[@]}"
-            echo "::error::не заданы переменные и секреты организации: ${list%, }"
-            echo "error=не заданы: ${list%, }" >>"$GITHUB_OUTPUT"
+            echo "::error::organization variables and secrets are missing: ${list%, }"
+            echo "error=missing: ${list%, }" >>"$GITHUB_OUTPUT"
             exit 1
           fi
           chart=$(sed -n 's/^CHART_VERSION=//p' deploy/versions.env)
-          [[ $chart =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::deploy/versions.env: нет CHART_VERSION"; exit 1; }
+          [[ $chart =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::deploy/versions.env: no CHART_VERSION"; exit 1; }
           echo "chart=$chart" >>"$GITHUB_OUTPUT"
-          echo "Выкатка $COMPONENT $TAG, чарт $chart, транспорт $DEPLOY_TRANSPORT"
+          echo "Rollout of $COMPONENT $TAG, chart $chart, transport $DEPLOY_TRANSPORT"
 
-      - name: Подпись образа
+      - name: Image signature
         if: inputs.verify_signature
         uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
-      - name: cosign verify (образ собран release.yml этого репозитория)
+      - name: cosign verify (the image was built by release.yml of this repository)
         if: inputs.verify_signature
         env:
           IMAGE: ${{ steps.params.outputs.image }}
@@ -170,10 +170,10 @@ jobs:
           cosign verify "$IMAGE:$TAG" \
             --certificate-identity-regexp "^https://github.com/${GITHUB_REPOSITORY}/.github/workflows/release.yml@refs/tags/v" \
             --certificate-oidc-issuer https://token.actions.githubusercontent.com >/dev/null \
-            || { echo "::error::у $IMAGE:$TAG нет подписи release.yml этого репозитория — выкатка остановлена"; exit 1; }
-          echo "подпись $IMAGE:$TAG проверена"
+            || { echo "::error::$IMAGE:$TAG has no signature of release.yml of this repository: the rollout stopped"; exit 1; }
+          echo "signature of $IMAGE:$TAG is verified"
 
-      - name: Доступ к машине (ssh)
+      - name: Machine access (ssh)
         if: env.DEPLOY_TRANSPORT == 'ssh'
         env:
           PROD_HOST: ${{ vars.PROD_HOST }}
@@ -184,10 +184,10 @@ jobs:
           mkdir -p ~/.ssh && chmod 700 ~/.ssh && umask 077
           printf '%s\n' "$PROD_SSH_KEY" | tr -d '\r' >~/.ssh/deploy_key
           printf '%s\n' "$PROD_KNOWN_HOSTS" | tr -d '\r' >~/.ssh/deploy_known_hosts
-          # Проверка ключа хоста не отключается.
+          # Host key checking stays on.
           printf 'Host prod\n  HostName %s\n  User %s\n  IdentityFile ~/.ssh/deploy_key\n  IdentitiesOnly yes\n  UserKnownHostsFile ~/.ssh/deploy_known_hosts\n  StrictHostKeyChecking yes\n  ServerAliveInterval 30\n' \
             "$PROD_HOST" "$PROD_USER" >~/.ssh/config
-      - name: Доступ к машине (gcp-iap)
+      - name: Machine access (gcp-iap)
         if: env.DEPLOY_TRANSPORT == 'gcp-iap'
         uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
         with:
@@ -196,7 +196,7 @@ jobs:
       - if: env.DEPLOY_TRANSPORT == 'gcp-iap'
         uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
 
-      - name: Выкатка
+      - name: Rollout
         id: deploy
         env:
           GCP_PROJECT: ${{ vars.GCP_PROJECT }}
@@ -213,12 +213,12 @@ jobs:
           HAMMURAPI_GITHUB_CLIENT_SECRET: ${{ secrets.HAMMURAPI_GITHUB_CLIENT_SECRET }}
           HAMMURAPI_WEBHOOK_SECRET: ${{ secrets.HAMMURAPI_WEBHOOK_SECRET }}
           HAMMURAPI_TOKEN_ENCRYPTION_KEY: ${{ secrets.HAMMURAPI_TOKEN_ENCRYPTION_KEY }}
-          # Необязательный: ключ DeepSeek для первого запуска; дальше подключения
-          # к LLM настраиваются в «Администрирование → Агент» (FTR.HMR.CMN-0004).
+          # Optional: a DeepSeek key for the first run; further connections
+          # to LLMs are set in Administration → Agent (FTR.HMR.CMN-0004).
           HAMMURAPI_BOOTSTRAP_DEEPSEEK_API_KEY: ${{ secrets.HAMMURAPI_BOOTSTRAP_DEEPSEEK_API_KEY }}
           HAMMURAPI_GHCR_PULL_TOKEN: ${{ secrets.HAMMURAPI_GHCR_PULL_TOKEN }}
-          # Вход (FTR.HMR.CMN-0006 R1): github (по умолчанию) — GitHub с email и, если
-          # задана, проверкой организации; oidc — корпоративный провайдер.
+          # Sign-in (FTR.HMR.CMN-0006 R1): github (default) is GitHub with email and, if
+          # set, an organization check; oidc is a corporate provider.
           HAMMURAPI_AUTH_PROVIDER: ${{ vars.HAMMURAPI_AUTH_PROVIDER || 'github' }}
           HAMMURAPI_AUTH_GITHUB_ORG: ${{ vars.HAMMURAPI_AUTH_GITHUB_ORG }}
           HAMMURAPI_AUTH_GITHUB_CLIENT_ID: ${{ vars.HAMMURAPI_AUTH_GITHUB_CLIENT_ID }}
@@ -227,16 +227,16 @@ jobs:
           HAMMURAPI_AUTH_OIDC_CLIENT_ID: ${{ vars.HAMMURAPI_AUTH_OIDC_CLIENT_ID }}
           HAMMURAPI_AUTH_OIDC_NAME: ${{ vars.HAMMURAPI_AUTH_OIDC_NAME }}
           HAMMURAPI_AUTH_OIDC_CLIENT_SECRET: ${{ secrets.HAMMURAPI_AUTH_OIDC_CLIENT_SECRET }}
-          # Подключение к Nabu (FTR.HMR.CMN-0007 R1). NABU_WEB_URL — сайт Nabu для
-          # ссылки из задачи кода (R11), необязательно.
+          # Connection to Nabu (FTR.HMR.CMN-0007 R1). NABU_WEB_URL is the Nabu site for
+          # a link from a code task (R11), optional.
           HAMMURAPI_NABU_URL: ${{ vars.HAMMURAPI_NABU_URL }}
           HAMMURAPI_NABU_CLIENT_ID: ${{ vars.HAMMURAPI_NABU_CLIENT_ID }}
           HAMMURAPI_NABU_CLIENT_SECRET: ${{ secrets.HAMMURAPI_NABU_CLIENT_SECRET }}
           NABU_WEB_URL: ${{ vars.NABU_WEB_URL }}
         run: |
           source "$RUNNER_TEMP/hmr.sh"
-          # Конфигурация и секреты — одним JSON в stdin SSH; jq берёт значения из
-          # окружения ($ENV), а не из аргументов.
+          # Configuration and secrets go as one JSON to the stdin of SSH; jq takes values from
+          # the environment ($ENV), not arguments.
           if [[ $COMPONENT == hammurapi-core ]]; then
             payload=$(jq -cn '{
               image: $ENV.IMAGE,
@@ -268,26 +268,26 @@ jobs:
             echo "result=$(jq -c . <<<"$result")" >>"$GITHUB_OUTPUT"
           fi
           if ((rc != 0)); then
-            echo "::error::hammurapi-deploy завершился с кодом $rc: $(jq -r '.error // "см. журнал"' <<<"$result" 2>/dev/null)"
+            echo "::error::hammurapi-deploy exited with code $rc: $(jq -r '.error // "see the log"' <<<"$result" 2>/dev/null)"
             exit "$rc"
           fi
 
-      - name: Проверки после выкатки (через публичные домены)
+      - name: Post-rollout checks (through the public domains)
         env:
           RESULT: ${{ steps.deploy.outputs.result }}
           WEBHOOK_SECRET: ${{ secrets.HAMMURAPI_WEBHOOK_SECRET }}
         run: |
           domain=$(jq -r .publicBaseDomain <<<"$RESULT")
           first=$(jq -r .firstInstall <<<"$RESULT")
-          [[ -n $domain && $domain != null ]] || { echo "::error::нет домена в итоге выкатки"; exit 1; }
-          # Адреса — из итога выкатки (hammurapi. и hammurapi-api.); стенд старой версии — web. и api.
+          [[ -n $domain && $domain != null ]] || { echo "::error::no domain in the rollout result"; exit 1; }
+          # Addresses come from the rollout result (hammurapi. and hammurapi-api.); a stand of an old version has web. and api.
           api=$(jq -r '.apiUrl // empty' <<<"$RESULT") web=$(jq -r '.webUrl // empty' <<<"$RESULT")
           api=${api:-https://api.$domain} web=${web:-https://web.$domain}
-          # Поды могут стать готовыми раньше, чем Traefik подхватит маршруты.
+          # Pods may become ready before Traefik picks up the routes.
           retry() { local _; for _ in $(seq 1 10); do "$@" && return 0; sleep 15; done; return 1; }
           check() { local name=$1; shift; if retry "$@"; then echo "✓ $name"; echo "- ✓ $name" >>"$GITHUB_STEP_SUMMARY"; else echo "::error::✗ $name"; echo "- ✗ $name" >>"$GITHUB_STEP_SUMMARY"; failed=1; fi; }
           failed=0
-          echo "### Проверки $COMPONENT $TAG на $domain" >>"$GITHUB_STEP_SUMMARY"
+          echo "### Checks of $COMPONENT $TAG on $domain" >>"$GITHUB_STEP_SUMMARY"
           redirect() { [[ $(curl -sS -o /dev/null -w '%{http_code} %{redirect_url}' --max-time 15 "http://$1/") =~ ^30[178]\ https:// ]]; }
           if [[ $COMPONENT == hammurapi-core ]]; then
             config_ok() { curl -fsS --max-time 15 "$api/api/v1/config" | jq -e '.provider == "github"' >/dev/null; }
@@ -301,12 +301,12 @@ jobs:
             }
             metrics_closed() { [[ $(curl -sS -o /dev/null -w '%{http_code}' --max-time 15 "$api/metrics") != 200 ]]; }
             check "GET $api/api/v1/config — 200, provider github" config_ok
-            check "подписанный ping на $api/hooks/v1/git — 202" ping_ok
-            check "$api/metrics закрыт" metrics_closed
+            check "a signed ping to $api/hooks/v1/git answers 202" ping_ok
+            check "$api/metrics is closed" metrics_closed
             check "http://${api#https://} → HTTPS" redirect "${api#https://}"
             if [[ $first == true ]]; then
               admins_ok() { curl -fsS --max-time 15 "$api/api/v1/config" | jq -e '.bootstrapAdminsConfigured == true' >/dev/null; }
-              check "первая установка: первый глобальный администратор задан" admins_ok
+              check "first install: the first global administrator is set" admins_ok
             fi
           else
             page_ok() { [[ $(curl -sS -o /dev/null -w '%{http_code} %{content_type}' --max-time 15 "$web/") =~ ^200\ text/html ]]; }
@@ -320,12 +320,12 @@ jobs:
             }
             check "GET $web/ — 200 text/html" page_ok
             check "$web/config.json: apiBaseUrl = $api" cfg_ok
-            check "CORS $api с Origin $web" cors_ok
+            check "CORS $api with Origin $web" cors_ok
             check "http://${web#https://} → HTTPS" redirect "${web#https://}"
           fi
           exit "$failed"
 
-      - name: Диагностика
+      - name: Diagnostics
         if: failure() && steps.deploy.outputs.result != ''
         env:
           RESULT: ${{ steps.deploy.outputs.result }}
@@ -335,9 +335,9 @@ jobs:
         run: |
           source "$RUNNER_TEMP/hmr.sh"
           path=$(jq -r '.diagnostics // empty' <<<"$RESULT")
-          [[ $path =~ ^/[A-Za-z0-9._/-]+\.tar\.gz$ ]] || { echo "диагностики нет"; exit 0; }
+          [[ $path =~ ^/[A-Za-z0-9._/-]+\.tar\.gz$ ]] || { echo "no diagnostics"; exit 0; }
           remote "cat '$path'" >deploy-diagnostics.tar.gz || true
-      - name: Артефакт диагностики
+      - name: Diagnostics artifact
         if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -347,7 +347,7 @@ jobs:
             deploy-diagnostics.tar.gz
           if-no-files-found: ignore
 
-      - name: Вебхук результата
+      - name: Result webhook
         if: always() && inputs.callback_url != ''
         env:
           JOB_STATUS: ${{ job.status }}
@@ -359,5 +359,5 @@ jobs:
             send_callback success
           else
             err=$(jq -r '.error // empty' <<<"${RESULT:-{\}}" 2>/dev/null || true)
-            send_callback failure "${err:-${CONFIG_ERROR:-выкатка не выполнена, см. $RUN_URL}}"
+            send_callback failure "${err:-${CONFIG_ERROR:-the rollout failed, see $RUN_URL}}"
           fi
