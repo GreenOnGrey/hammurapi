@@ -1,5 +1,5 @@
-# actionlint: проверки после выкатки вызываются косвенно через check — это не ошибка.
-# shellcheck до 0.10 сообщает об этом как SC2317 (так на ubuntu-24.04), с 0.10 — SC2329.
+# actionlint: post-rollout checks are called indirectly through check, which is not an error.
+# shellcheck before 0.10 reports this as SC2317 (as on ubuntu-24.04), since 0.10 as SC2329.
 paths:
   .github/workflows/deploy-component.yml:
     ignore:
