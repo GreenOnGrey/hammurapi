@@ -13,6 +13,7 @@ workflow), `installer` (the stand and charts) and `hammurapi-specs`
   as `FTR.HMR.CMN-0004`, `FTR.HMR.INFRA-0002` (old `PLT.HMR-…`, `PLT.INFRA-…`, bare `HMR.CMN-…` are
   obsolete). Deviations are written into the spec.
 - Do not commit, tag or push unless asked.
+- English for code, comments, docs, CI, scripts, logs, test names, and the messages and tool descriptions that services return. Russian stays in test data that exercises Russian text and the specifications in `hammurapi-specs`.
 
 ## Contents
 
