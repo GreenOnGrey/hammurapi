@@ -4,7 +4,7 @@
 #
 # It lives in hammurapi and core and web call it. All logic is in the steps below, reading no other files;
 # the machine runs bin/hammurapi-deploy of the deployed stand version
-# (/opt/hammurapi-infra/current). The file holds no secrets: the calling repository passes them.
+# (/opt/installer/current). The file holds no secrets: the calling repository passes them.
 # Secrets reach the machine only through the stdin of the SSH session (R14).
 name: deploy-component
 on:
@@ -32,7 +32,7 @@ jobs:
       CALLBACK_URL: ${{ inputs.callback_url }}
       DEPLOY_ENVIRONMENT: ${{ inputs.environment }}
       DEPLOY_TRANSPORT: ${{ vars.DEPLOY_TRANSPORT || 'ssh' }}
-      PROD_DIR: /opt/hammurapi-infra
+      PROD_DIR: /opt/installer
       RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
       CALLBACK_SECRET: ${{ secrets.HAMMURAPI_DEPLOY_CALLBACK_SECRET }}
     steps:
