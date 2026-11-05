@@ -6,7 +6,7 @@ Guide for coding agents and developers working in this repository.
 
 Hammurapi is five repositories checked out side by side: `hammurapi-core` (Go backend),
 `hammurapi-web` (SPA), `hammurapi` (this one: public docs, self-hosted chart, the reusable deploy
-workflow), `installer` (private stand and charts) and `hammurapi-specs`
+workflow), `installer` (the stand and charts) and `hammurapi-specs`
 (the specifications).
 
 - Features are specified in `hammurapi-specs/specs/HMR/<GROUP>/FTR.HMR.<GROUP>-NNNN/`. Refer to them
