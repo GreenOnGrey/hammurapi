@@ -361,3 +361,19 @@ jobs:
             err=$(jq -r '.error // empty' <<<"${RESULT:-{\}}" 2>/dev/null || true)
             send_callback failure "${err:-${CONFIG_ERROR:-the rollout failed, see $RUN_URL}}"
           fi
+
+  # FTR.INFRA.INST-0001 R25: a version that runs on production becomes a candidate for the set of the installer.
+  # version-pr.yml of installer opens a PR there that moves config/versions.env, with the token of the GitHub App
+  # of the organization (VERSIONS_APP_ID, VERSIONS_APP_PRIVATE_KEY); without the App it only says so, and a failure
+  # there is a warning, not a failed rollout.
+  versions:
+    needs: deploy
+    if: inputs.environment == 'production'
+    permissions: {}
+    uses: GreenOnGrey/installer/.github/workflows/version-pr.yml@74fd2f070ef39e4ba5bdb0479e28451df85169e9 # v0.3.10
+    with:
+      component: ${{ inputs.component }}
+      tag: ${{ inputs.tag }}
+      app_id: ${{ vars.VERSIONS_APP_ID }}
+    secrets:
+      VERSIONS_APP_PRIVATE_KEY: ${{ secrets.VERSIONS_APP_PRIVATE_KEY }}
