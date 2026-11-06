@@ -1,5 +1,7 @@
 # Deployment
 
+**To install Hammurapi with Nabu**, use the [installer](https://github.com/GreenOnGrey/installer). It installs on one machine with minikube or into an existing Kubernetes cluster, creates the client of Hammurapi in Nabu, and handles updates. Start with [its quick start](https://github.com/GreenOnGrey/installer/blob/main/docs/quickstart.md); [products.md](https://github.com/GreenOnGrey/installer/blob/main/docs/products.md) covers the GitHub App and the webhook. This page describes the images and the chart of this repository, for a deployment of your own.
+
 Hammurapi runs on Kubernetes with the Helm chart of this repository. It needs **Nabu** — the
 agent of Hammurapi; without `NABU_URL`, `NABU_CLIENT_ID` and `NABU_CLIENT_SECRET` the chart does
 not render and the services do not start.
