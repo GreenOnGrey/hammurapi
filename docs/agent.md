@@ -44,8 +44,12 @@ In every scenario the agent also reads the specification of the default branch t
 tools over the same index as the **Specification** section (FTR.HMR.CMN-0005): `spec_tree` (domains,
 systems, features), `spec_search` (full text and ID prefix, 20 per page), `spec_read` (a document
 or one section; long documents come with the table of contents and the sections left out),
-`spec_requirements` (R1… with acceptance criteria) and `spec_references` (where a feature or a
-requirement is mentioned).
+`spec_requirements` (R1… with acceptance criteria), `spec_references` (where a feature or a
+requirement is mentioned) and `spec_links` (FTR.HMR.DEV-0002: what a feature builds on and which
+requirements of other features it changes, and who builds on it or changes it; without a feature —
+the graph of these links by domain, system and kind). The agent of Nabu reads them through the same
+MCP server: a tool added by an upgrade shows up as new after the check of the connection `hammurapi`
+in the catalog of Nabu and is used once allowed there.
 
 The reading tools of the table below (`list_issues`, `read_issue`, `list_features`, `search_specs`,
 `read_spec`, `read_rules`, `list_services`, `read_service_file`, `test_metric_query`) and `spec_*` carry the MCP annotation
