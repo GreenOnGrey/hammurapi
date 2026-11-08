@@ -69,7 +69,7 @@ administrator sets it in **Administration → Settings** (default every hour).
 | `SPEC_SCAN_TIMEOUT` | Limit of one check | `15m` |
 | `SPEC_FILE_PREVIEW_MAX_BYTES` | Larger files of an area are offered for download only | `5MB` |
 | `SPEC_SEARCH_MAX_LIMIT` | Results per page of `/api/v1/spec/search` at most | `50` |
-| `SPEC_AGENT_READ_MAX_CHARS` | `spec_read` returns longer documents by sections | `40000` |
+| `SPEC_AGENT_READ_MAX_CHARS` | `spec_read` returns longer documents by sections; `spec_links` asks to narrow a longer graph | `40000` |
 | `SPEC_AGENT_PAGE_SIZE` | Page of `spec_search` and `spec_references` | `20` |
 
 ## Users
