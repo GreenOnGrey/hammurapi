@@ -78,6 +78,7 @@ administrator sets it in **Administration → Settings** (default every hour).
 | --- | --- | --- |
 | `BOOTSTRAP_ADMINS` | Emails (or, transitionally, git logins), comma-separated, that become global administrators on their **first** sign-in | — |
 | `DEFAULT_LANGUAGE` | Interface language before sign-in when the browser language is not supported, and for new users: `en`, `ru`, `de`, `es`, `zh-CN` | `en` |
+| `SPEC_LANGUAGE` | Language of the specifications: the headings of the document contract that Hammurapi reads and writes (notes «Changed in» / «Изменено в», the instructions of the writer): `ru` or `en`. Documents in either language are always read | `DEFAULT_LANGUAGE` when it is `ru` or `en`, otherwise `en` |
 
 ## Sign-in
 
