@@ -33,6 +33,8 @@ One provider and one repository per instance.
 | `GITLAB_CLIENT_ID`, `GITLAB_CLIENT_SECRET` | GitLab OAuth application | — (required for GitLab) |
 | `WEBHOOK_SECRET` | Shared with the webhooks of the spec, service and catalog repositories. GitLab sends it as `X-Gitlab-Token`; GitHub signs with it (`X-Hub-Signature-256`) | — (required for `api`) |
 | `GITLAB_BOT_TOKEN` | GitLab: token of the bot account that commits, merges and triggers pipelines (GitHub uses the App) | — |
+| `GITHUB_OIDC_ISSUER` | GitHub: issuer of the OIDC tokens of Actions jobs that `speclint service` presents (FTR.HMR.SPEC-0003); GitHub Enterprise Server — `https://<host>/_services/token` | `https://token.actions.githubusercontent.com` |
+| `GITLAB_OIDC_ISSUER` | GitLab: issuer of the OIDC tokens of CI jobs (`id_tokens`), the external address of GitLab | `GIT_OAUTH_URL` |
 | `HAMMURAPI_BOT_LOGIN` | Login of the bot (`<app-slug>[bot]` on GitHub); its commits and reviews are not counted as human | — |
 
 See [git-providers.md](git-providers.md) and [cycle.md](cycle.md).
