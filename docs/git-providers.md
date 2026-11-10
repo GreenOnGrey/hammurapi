@@ -62,6 +62,7 @@ token while the user is active. If refreshing fails, the user is asked to sign i
    - Webhook: off (the repository webhook below is used instead)
    - Repository permissions: **Contents** read & write, **Pull requests** read & write,
      **Issues** read & write, **Actions** read & write (deploy through `workflow_dispatch`),
+     **Workflows** read & write (the check of speclint proposed in `.github/workflows/`, FTR.HMR.SPEC-0002),
      **Metadata** read
 2. Install the App on the specifications repository and every service repository. The App is
    also the bot: set `HAMMURAPI_BOT_LOGIN=<app-slug>[bot]`.
