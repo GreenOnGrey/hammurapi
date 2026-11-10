@@ -44,5 +44,10 @@ jobs:
           assert core["config"]["AUTH_PROVIDER"] == "github" and core["config"]["GITHUB_ALLOWED_ORG"] == "GreenOnGrey", core["config"]
           assert core["config"]["NABU_URL"] == "https://nabu-api.x" and core["secrets"]["NABU_CLIENT_SECRET"] == "ns"
           assert core["config"]["NABU_WEB_URL"] == "https://nabu.x"
+          # FTR.HMR.DEV-0003 R23: the language of the specifications reaches core only when it is set.
+          assert "SPEC_LANGUAGE" not in core["config"], core["config"]
+          env["HAMMURAPI_SPEC_LANGUAGE"] = "ru"
+          core = json.loads(subprocess.run(["jq", "-cn", exprs[0]], env=env, check=True, capture_output=True, text=True).stdout)
+          assert core["config"]["SPEC_LANGUAGE"] == "ru", core["config"]
           print("payload ok")
           EOF
