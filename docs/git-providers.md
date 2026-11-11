@@ -13,7 +13,10 @@ a release, pipelines) uses the **bot** — the GitHub App or a GitLab bot accoun
    gate document from `rules/<area>/template.md`, and each fix document from `fix-template.md`.
    A missing template falls back to an empty document with a title.
 3. Hammurapi writes specifications to `specs/<domain>/<system>/<feature key>/<area>/spec.md` and
-   Discovery to `specs/<domain>/<system>/<feature key>/discovery.md`.
+   Discovery to `specs/<domain>/<system>/<feature key>/discovery/discovery.md`. People put the
+   materials of the research (presentations, images, notes) beside it in `discovery/` with a commit;
+   the feature page and the navigator show them in the tab «Analysis», which is not a gate. A
+   `discovery.md` in the root of a feature folder, written by older versions, is still read.
 
 Branch protection on the default branch is fine. A **release** merges the feature's PR/MR (last,
 after the services) as the bot; if the provider refuses (required checks, conflicts, protection),

@@ -60,7 +60,7 @@ on — shows them and hides the tools that change data, `create_issue` among the
 | --- | --- | --- | --- | --- | --- |
 | `list_issues`, `read_issue`, `list_features`, `search_specs` | yes | yes | yes | yes | no |
 | `read_spec`, `read_rules`, `list_services` | yes | yes | yes | yes | its feature |
-| `list_gate_files`, `read_gate_file` (mockups of design, contracts of tech; text files up to `SPEC_FILE_PREVIEW_MAX_BYTES`) | yes | yes | yes | yes | its feature |
+| `list_gate_files`, `read_gate_file` (mockups of design, contracts of tech, with `area: discovery` the materials of the research; text files up to `SPEC_FILE_PREVIEW_MAX_BYTES`) | yes | yes | yes | yes | its feature |
 | `read_service_file` | no | yes | yes | yes | no (it has the working copy) |
 | `test_metric_query` | with an open context | yes | no | no | no |
 | `request_discovery_revision` | experts of the domain, from the chat of the issue | no | no | no | no |

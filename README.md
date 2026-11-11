@@ -211,7 +211,7 @@ Key design decisions:
   /tech/     template.md  fix-template.md
   /qa/       template.md  fix-template.md
 /specs
-  /<domain>/<system>/<feature key>/discovery.md
+  /<domain>/<system>/<feature key>/discovery/discovery.md   (+ materials of the research)
   /<domain>/<system>/<feature key>/<product|design|arch|tech|qa>/spec.md
   e.g. /specs/FMS/CAR/FTR.FMS.CAR-0005/product/spec.md
 ```
