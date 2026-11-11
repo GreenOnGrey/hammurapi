@@ -52,7 +52,7 @@ MCP server: a tool added by an upgrade shows up as new after the check of the co
 in the catalog of Nabu and is used once allowed there.
 
 The reading tools of the table below (`list_issues`, `read_issue`, `list_features`, `search_specs`,
-`read_spec`, `read_rules`, `list_services`, `read_service_file`, `test_metric_query`) and `spec_*` carry the MCP annotation
+`read_spec`, `list_gate_files`, `read_gate_file`, `read_rules`, `list_services`, `read_service_file`, `test_metric_query`) and `spec_*` carry the MCP annotation
 `readOnlyHint`. A client that offers only read-only tools — a catalog item of Nabu with **Read only**
 on — shows them and hides the tools that change data, `create_issue` among them.
 
@@ -60,6 +60,7 @@ on — shows them and hides the tools that change data, `create_issue` among the
 | --- | --- | --- | --- | --- | --- |
 | `list_issues`, `read_issue`, `list_features`, `search_specs` | yes | yes | yes | yes | no |
 | `read_spec`, `read_rules`, `list_services` | yes | yes | yes | yes | its feature |
+| `list_gate_files`, `read_gate_file` (mockups of design, contracts of tech; text files up to `SPEC_FILE_PREVIEW_MAX_BYTES`) | yes | yes | yes | yes | its feature |
 | `read_service_file` | no | yes | yes | yes | no (it has the working copy) |
 | `test_metric_query` | with an open context | yes | no | no | no |
 | `request_discovery_revision` | experts of the domain, from the chat of the issue | no | no | no | no |
