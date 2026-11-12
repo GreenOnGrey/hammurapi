@@ -52,6 +52,10 @@ See [git-providers.md](git-providers.md) and [cycle.md](cycle.md).
 | `WORKFLOW_DISPATCHERS` | How many effects a worker runs at once; an effect that runs an agent holds one for minutes, the runs are processed by a loop of their own | `4` |
 | `DISCOVERY_TIMEOUT` | Maximum duration of one Discovery session | `20m` |
 | `WRITER_TIMEOUT` | Maximum duration of one run of the writer of specifications | `30m` |
+| `RUN_LOG_STREAMS_PER_USER` | Open logs of runs of agents per user (`FTR.HMR.DEV-0004`) | `3` |
+| `RUN_LOG_STREAMS_MAX` | Open logs of runs of agents per process of the API | `100` |
+| `RUN_LOG_RETENTION` | Age after which the log of a run is shown as deleted — as long as Nabu keeps the events of runs | `720h` |
+| `CODEGEN_CHANGES_KEEP` | How long the changes of an agent are kept in S3 for «Retry the commit» without a new run (`FTR.HMR.DEV-0004`) | `336h` |
 
 Deploy settings, the feature-flag webhook, the Backstage catalog, stage and metric sources are not
 environment variables: administrators set them in the web app (see [cycle.md](cycle.md)).
