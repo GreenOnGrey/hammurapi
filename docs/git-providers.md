@@ -30,7 +30,8 @@ Every repository of a service (from the catalog or Administration → Services) 
   to push branches, open PRs, merge them and start pipelines or workflows;
 - the same webhook as the specifications repository (below), so PR state, reviews, review comments
   and tags reach Hammurapi;
-- a CI step that uploads JUnit results ([cycle.md](cycle.md#4-ci-results)).
+- a CI step that uploads JUnit results for validation ([cycle.md](cycle.md#4-ci-results)); the CI
+  status of a PR comes from the provider without it.
 
 Hammurapi never merges into a service repository outside a release, whatever the autonomy level.
 
@@ -50,7 +51,7 @@ Hammurapi never merges into a service repository outside a release, whatever the
    - URL: `<PUBLIC_URL>/hooks/v1/git`
    - Secret token: `WEBHOOK_SECRET`
    - Triggers: **Push events** (all branches), **Tag push events**, **Merge request events**,
-     **Comments**
+     **Comments**, **Pipeline events** (the CI status of an MR)
 5. Users need at least Developer access to the project to push to feature branches; merging into a
    protected default branch needs the corresponding permission.
 
@@ -66,7 +67,7 @@ token while the user is active. If refreshing fails, the user is asked to sign i
    - Repository permissions: **Contents** read & write, **Pull requests** read & write,
      **Issues** read & write, **Actions** read & write (deploy through `workflow_dispatch`),
      **Workflows** read & write (the check of speclint proposed in `.github/workflows/`, FTR.HMR.SPEC-0002),
-     **Metadata** read
+     **Checks** read and **Commit statuses** read (the CI status of a PR), **Metadata** read
 2. Install the App on the specifications repository and every service repository. The App is
    also the bot: set `HAMMURAPI_BOT_LOGIN=<app-slug>[bot]`.
 3. Set `GIT_PROVIDER=github`, `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, `GITHUB_CLIENT_ID`,
@@ -77,13 +78,16 @@ token while the user is active. If refreshing fails, the user is asked to sign i
    - Content type: `application/json`
    - Secret: `WEBHOOK_SECRET`
    - Events: **Pushes**, **Pull requests**, **Pull request reviews**, **Pull request review
-     comments**, **Issue comments** (tags arrive as pushes)
+     comments**, **Issue comments** (tags arrive as pushes), **Check suites** and **Statuses**
+     (the CI status of a PR)
    - Add the same webhook to every service repository (or once for the organization).
 
 ## Why the webhook matters
 
-Hammurapi never polls git. Every event arrives as a webhook and goes through Kafka (topic
-`hammurapi.git`) to the `worker`:
+Hammurapi does not poll git: every event arrives as a webhook and goes through Kafka (topic
+`hammurapi.git`) to the `worker`. The one exception is open PRs: every `PR_SYNC_INTERVAL` the worker
+asks the provider for their title, head and the CI status of the head, so a missed event or a PR
+opened before an update does not keep a stale status.
 
 - a push to a feature branch of the specifications repository becomes an `edited` event; the gate
   returns to draft if it was awaiting approval or approved — also for edits made directly in git.
@@ -92,7 +96,11 @@ Hammurapi never polls git. Every event arrives as a webhook and goes through Kaf
 - pushes, PRs, reviews and comments in service repositories update the tasks and PRs of a feature;
   a review comment on an agent's PR goes back to the agent;
 - tags wake up releases waiting for a service version;
-- a push to the catalog repository starts a catalog sync.
+- a push to the catalog repository starts a catalog sync;
+- check suites and statuses (GitHub) or pipelines (GitLab) update the CI status of the
+  PRs with that head. Without these events the status arrives with the sync of open PRs. Without
+  the **Checks** and **Commit statuses** permissions of the App the sync fails with `403`
+  (`hammurapi_pr_sync_total{result="failed"}`) and the status stays as it was.
 
 Without a working webhook, edits never reach the projection and approvals are refused with
 "the document changed, reload the page". Check the provider's webhook delivery log and the

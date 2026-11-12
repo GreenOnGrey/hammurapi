@@ -56,6 +56,7 @@ See [git-providers.md](git-providers.md) and [cycle.md](cycle.md).
 | `RUN_LOG_STREAMS_MAX` | Open logs of runs of agents per process of the API | `100` |
 | `RUN_LOG_RETENTION` | Age after which the log of a run is shown as deleted — as long as Nabu keeps the events of runs | `720h` |
 | `CODEGEN_CHANGES_KEEP` | How long the changes of an agent are kept in S3 for «Retry the commit» without a new run (`FTR.HMR.DEV-0004`) | `336h` |
+| `PR_SYNC_INTERVAL` | How often the worker compares open PRs with the git provider: the CI status of the head, the head and the title (`FTR.HMR.DEV-0004` R17); `0` — only webhook events | `5m` |
 
 Deploy settings, the feature-flag webhook, the Backstage catalog, stage and metric sources are not
 environment variables: administrators set them in the web app (see [cycle.md](cycle.md)).

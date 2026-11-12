@@ -68,7 +68,13 @@ a git error, the scenario is not bound.
 
 ## 4. CI results
 
-Validation needs test results linked to the QA test cases (`QA-…` IDs of the qa gate). Add a step
+The CI status of a PR (green, red, pending, no checks) comes from the git provider: the check runs
+and commit statuses of the head on GitHub, the last pipeline of the head on GitLab. Webhook events of
+checks update it at once, and the worker compares open PRs with the provider every
+`PR_SYNC_INTERVAL` ([git-providers.md](git-providers.md)). Nothing in the CI of a service is needed
+for it.
+
+Validation also needs test results linked to the QA test cases (`QA-…` IDs of the qa gate). Add a step
 to the CI of each service repository that uploads JUnit XML:
 
 ```http
@@ -84,7 +90,8 @@ Content-Type: application/json
 `environment` is `ci` for PR pipelines and `stage` for e2e runs after a stage deploy. A test case is
 matched when its ID appears in the test name or a `<property>` (case, `-`, `_` and spaces are
 ignored; `QA-1` does not match inside `QA-12`), so name tests like `TestQA07_cancel_booking`. A test
-case with any failed test is failed. The body is limited to 20 MB; the response is `202`.
+case with any failed test is failed. The body is limited to 20 MB; the response is `202`. The report
+sets the CI status of a PR only when the provider has no checks for its head.
 
 GitHub Actions:
 
