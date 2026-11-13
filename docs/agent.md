@@ -65,6 +65,7 @@ on — shows them and hides the tools that change data, `create_issue` among the
 | `test_metric_query` | with an open context | yes | no | no | no |
 | `request_discovery_revision` | experts of the domain, from the chat of the issue | no | no | no | no |
 | `request_spec_revision`, `read_spec_questions` | experts of the domain, from the Specification tab of the feature (`read_spec_questions`: anyone) | no | no | no | no |
+| `request_code_regeneration` | experts of the domain, from the Implementation tab of the feature, when the last task of the service is done | no | no | no | no |
 | `save_discovery` | no | its issue | no | no | no |
 | `submit_gate`, `submit_gate_file` | no | no | the areas of its run | no | no |
 | `report_discrepancy` | no | no | no | its feature | no |

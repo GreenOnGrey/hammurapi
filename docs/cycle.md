@@ -66,6 +66,15 @@ repository; the time and token limits of the agent are set in Nabu. A failed tas
 class: the sandbox did not start, the working copy is too large, the agent's limit, no changes,
 a git error, the scenario is not bound.
 
+**Regeneration.** When the last task of a service is done, an expert of the domain can run its agent
+again — with the refresh icon in the head of the service on the Implementation tab, or by asking the
+personal agent in the chat of that tab (`request_code_regeneration`). An optional comment goes to the
+agent together with what the PR says: its comments (the latest 40, line comments with their place) and,
+when CI is red, the failed checks with the end of their logs (GitHub Actions jobs, GitLab jobs; at most
+8). The agent starts from the current code of the service branch and updates the same PR. The logs of
+GitHub Actions need the **Actions** read permission of the App; without it the agent gets the summary
+of the check only.
+
 ## 4. CI results
 
 The CI status of a PR (green, red, pending, no checks) comes from the git provider: the check runs
@@ -218,7 +227,7 @@ five documents by the templates of `rules/`, from the whole Discovery of the iss
 - **Manual edits** of product, design and arch stay; a run waits for the end of an edit.
 - **Nabu down:** runs wait and start when it is back. Other failures stop the run with a reason and «Retry».
 
-Allow `request_spec_revision` and `read_spec_questions` for the connection `hammurapi` in the catalog of Nabu.
+Allow `request_spec_revision`, `read_spec_questions` and `request_code_regeneration` for the connection `hammurapi` in the catalog of Nabu.
 
 ## Specifications added past Hammurapi (repository check)
 
